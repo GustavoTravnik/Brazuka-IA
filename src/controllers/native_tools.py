@@ -39,7 +39,7 @@ _BINARY_EXTS: frozenset[str] = frozenset({
     ".pdf", ".docx", ".xlsx", ".pptx",
 })
 
-# ── Schemas de ferramentas (definição para a API da Anthropic) ───────────────
+# ── Schemas de ferramentas (otimizado para Gemini) ───────────────
 TOOLS_DEFINITIONS: list[dict] = [
     {
         "name": "read_files",
