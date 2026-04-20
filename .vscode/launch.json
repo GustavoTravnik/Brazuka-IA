@@ -1,0 +1,48 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "🐛 Debug app.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/app.py",
+      "args": [
+        "--skills",
+        "[optimize-shell-execution,rtk-gain]"
+      ],
+      "cwd": "${workspaceFolder}/src",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {}
+    },
+    {
+      "name": "🖥 Debug Panel Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/panel/server.py",
+      "cwd": "${workspaceFolder}/src",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {}
+    },
+    {
+      "name": "🚀 Debug All (Panel + app.py)",
+      "configurations": [
+        "🖥 Debug Panel Server",
+        "🐛 Debug app.py"
+      ],
+      "preLaunchTask": "🖥 Start Panel Server",
+      "stopAll": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "🚀 Debug All (Panel + app.py)",
+      "configurations": [
+        "🖥 Debug Panel Server",
+        "🐛 Debug app.py"
+      ],
+      "stopAll": true
+    }
+  ]
+}

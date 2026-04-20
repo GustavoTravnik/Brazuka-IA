@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show:*)",
+      "Bash(curl -s -X POST http://localhost:7777/v1/messages -H 'Content-Type: application/json' -H 'x-api-key: proxy' -H 'anthropic-version: 2023-06-01' -d '{\"model\":\"claude-haiku-4-5\",\"max_tokens\":10,\"messages\":[{\"role\":\"user\",\"content\":\"Hi\"}]}')",
+      "Bash(tail -100 /home/ogt100749/sources/coia/src/logs/*.log)",
+      "Bash(curl -s http://localhost:7777)"
+    ]
+  }
+}

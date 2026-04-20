@@ -1,0 +1,988 @@
+/* ═══════════════════════════════════════════════════════════════════
+   COIA PANEL — style.css  (dark theme)
+   ═══════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface2:  #1f2937;
+  --border:    #30363d;
+  --accent:    #58a6ff;
+  --accent2:   #1f6feb;
+  --green:     #3fb950;
+  --red:       #f85149;
+  --yellow:    #d29922;
+  --orange:    #e8765c;
+  --text:      #c9d1d9;
+  --text-dim:  #8b949e;
+  --radius:    8px;
+  --shadow:    0 4px 24px rgba(0,0,0,.45);
+  --footer-h:  64px;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* ─── Layout ──────────────────────────────────────────────────── */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ─── Header ─────────────────────────────────────────────────── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+.logo span { color: var(--text-dim); font-weight: 400; font-size: 12px; margin-left: 6px; }
+
+/* ─── Tabs ───────────────────────────────────────────────────── */
+.tabs { display: flex; gap: 2px; margin-left: auto; flex-wrap: nowrap; }
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+.tab-btn:hover { background: var(--surface2); color: var(--text); }
+.tab-btn.active { background: var(--accent2); color: #fff; }
+
+/* ─── Main content ───────────────────────────────────────────── */
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: calc(var(--footer-h) + 20px);
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─── Section titles ─────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.section-title { font-size: 16px; font-weight: 600; color: var(--text); }
+
+/* ─── Skill / MCP grids (Home) ───────────────────────────────── */
+#skill-grid,
+#mcp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.skill-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color .15s, background .15s, transform .1s;
+  user-select: none;
+}
+.skill-card:hover {
+  border-color: var(--accent);
+  background: var(--surface2);
+  transform: translateY(-1px);
+}
+.skill-card.selected {
+  border-color: var(--green);
+  background: rgba(63,185,80,.08);
+}
+
+.skill-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skill-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+  transition: background .15s;
+}
+.skill-card.selected .skill-dot { background: var(--green); }
+
+.skill-name {
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.skill-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+.skill-card.selected .skill-desc { color: rgba(63,185,80,.75); }
+
+.badge-default {
+  font-size: 10px;
+  background: var(--accent2);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* ─── MCP card (Home) ────────────────────────────────────────── */
+.mcp-card {
+  border-color: rgba(210,153,34,.3);
+}
+.mcp-card:hover {
+  border-color: var(--yellow);
+}
+.mcp-card.selected {
+  border-color: var(--yellow);
+  background: rgba(210,153,34,.08);
+}
+.mcp-card.selected .skill-dot { background: var(--yellow); }
+.mcp-card.selected .skill-desc { color: rgba(210,153,34,.75); }
+
+/* Card "nenhum" — variante vermelha */
+.mcp-card-none { border-color: rgba(248,81,73,.3); }
+.mcp-card-none:hover { border-color: var(--red); }
+.mcp-card-none.selected {
+  border-color: var(--red);
+  background: rgba(248,81,73,.08);
+}
+.mcp-card-none.selected .skill-dot { background: var(--red); }
+.mcp-card-none.selected .skill-desc { color: rgba(248,81,73,.75); }
+
+.badge-none {
+  font-size: 10px;
+  background: rgba(248,81,73,.15);
+  color: var(--red);
+  border: 1px solid rgba(248,81,73,.4);
+  padding: 2px 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+
+/* MCP editor textarea — monospace como o skill editor */
+#mcp-editor-content {
+  min-height: 340px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* ─── Footer cmdline ─────────────────────────────────────────── */
+footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--footer-h);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  z-index: 100;
+}
+footer label {
+  font-size: 12px; color: var(--text-dim); white-space: nowrap;
+  font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+}
+#cmdline {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--green);
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+}
+#cmdline:focus { border-color: var(--accent); }
+
+/* ─── Card grid (abas de gerenciamento) ──────────────────────── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.card-grid-sm {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+/* ─── Management card ────────────────────────────────────────── */
+.mgmt-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color .15s, background .15s, transform .1s;
+  align-self: stretch;   /* estica para ocupar a linha inteira do grid */
+}
+.mgmt-card:hover {
+  border-color: var(--accent);
+  background: var(--surface2);
+  transform: translateY(-1px);
+}
+
+.mgmt-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mgmt-card-icon { font-size: 15px; flex-shrink: 0; }
+.mcp-key-badge {
+  font-size: 12px;
+  flex-shrink: 0;
+  opacity: 0.75;
+  margin-left: -2px;
+}
+.mgmt-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+/* Título fora do mgmt-card-top: ocupa linha inteira e quebra livremente */
+.exec-card > .mgmt-card-name,
+.prompt-card > .mgmt-card-name,
+.sprint-card > .mgmt-card-name,
+.crews-card > .mgmt-card-name {
+  display: block;
+  width: 100%;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+.sprint-card > .mgmt-card-name { cursor: pointer; }
+.mgmt-card-badge {
+  font-size: 10px;
+  background: var(--surface2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.mgmt-card-actions {
+  display: none; /* substituído por .mgmt-card-footer */
+}
+
+.mgmt-card-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+.mgmt-card-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: .6;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+
+/* ─── Card footer — botões sempre na base, nunca quebram o topo ─ */
+.mgmt-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;         /* empurra para o fundo do card */
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  flex-wrap: nowrap;        /* botões nunca quebram linha */
+  overflow: visible;
+}
+/* Se os botões somam mais que o card, o card expande via min-width do grid */
+.mgmt-card-footer .btn-sm { flex-shrink: 0; }
+
+/* ─── Sprint card extras ─────────────────────────────────────── */
+.sprint-progress {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.sprint-progress-bar {
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+  transition: width .3s;
+}
+.sprint-progress-label {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* ─── Execution card extras ──────────────────────────────────── */
+.exec-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.exec-card-meta span { white-space: nowrap; }
+
+/* ─── Run with crew modal ────────────────────────────────────── */
+.run-crew-sprint-info {
+  margin-bottom: 4px;
+}
+.run-crew-sprint-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+
+/* ─── Empty state ────────────────────────────────────────────── */
+.empty-state {
+  color: var(--text-dim);
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 13px;
+  grid-column: 1 / -1;
+}
+
+/* ─── List rows (legado — mantido para compatibilidade) ──────── */
+.list-body { display: flex; flex-direction: column; gap: 6px; }
+.list-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.list-name { font-size: 13px; font-weight: 500; }
+.list-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ─── Buttons ────────────────────────────────────────────────── */
+.btn {
+  background: var(--accent2); color: #fff;
+  border: none; border-radius: var(--radius);
+  padding: 8px 16px; cursor: pointer;
+  font-size: 13px; font-weight: 500;
+  transition: opacity .15s; white-space: nowrap;
+}
+.btn:hover { opacity: .85; }
+.btn-green { background: var(--green); }
+
+.btn-sm {
+  border: none; border-radius: 6px;
+  padding: 5px 10px; cursor: pointer;
+  font-size: 12px; font-weight: 500;
+  transition: opacity .15s; color: #fff; white-space: nowrap;
+}
+.btn-sm:hover { opacity: .8; }
+.btn-edit   { background: var(--accent2); }
+.btn-danger { background: var(--red); }
+.btn-add    { background: var(--green); }
+.btn-coia   { background: #1a7f4b; }
+
+/* Botão Nova Skill com COIA */
+.btn-skill-builder {
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity .15s, transform .1s;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, .35);
+}
+.btn-skill-builder:hover  { opacity: .9; transform: translateY(-1px); }
+.btn-skill-builder:active { transform: translateY(0); opacity: 1; }
+
+.btn.btn-coia {
+  background: #1a7f4b;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  letter-spacing: .3px;
+}
+
+.btn-copy {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); border-radius: var(--radius);
+  padding: 7px 14px; cursor: pointer;
+  font-size: 12px; white-space: nowrap;
+  transition: background .15s;
+}
+.btn-copy:hover { background: var(--border); }
+
+.btn-launch {
+  background: var(--green); border: none;
+  color: #000; border-radius: var(--radius);
+  padding: 7px 16px; cursor: pointer;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+  transition: opacity .15s;
+}
+.btn-launch:hover { opacity: .85; }
+
+/* ─── Modals ─────────────────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.65);
+  z-index: 200;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 20px;
+  overflow-y: auto;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 100%; max-width: 760px;
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-console {
+  max-width: 1000px !important;
+  height: 85vh;
+}
+.modal-console .modal-body {
+  flex: 1;
+  overflow: hidden;
+  max-height: none;
+}
+
+.modal-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+.modal-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.modal-close {
+  background: none; border: none;
+  color: var(--text-dim); font-size: 20px;
+  cursor: pointer; line-height: 1;
+  padding: 2px 6px; border-radius: 4px;
+}
+.modal-close:hover { background: var(--border); color: var(--text); }
+
+.modal-body {
+  padding: 18px;
+  overflow-y: auto;
+  max-height: 72vh;
+  display: flex; flex-direction: column;
+  gap: 12px;
+}
+.modal-footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ─── Form ───────────────────────────────────────────────────── */
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text); padding: 8px 10px;
+  font-size: 13px; font-family: inherit;
+  outline: none; transition: border-color .15s;
+  resize: vertical;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--accent); }
+.form-group input[type="checkbox"] { width: auto; display: inline; padding: 0; margin-right: 4px; }
+.form-group small { color: var(--text-dim); font-size: 11px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-group-full { grid-column: 1 / -1; }
+
+#skill-editor-content,
+#cmd-editor-content,
+#prompt-editor-content {
+  min-height: 300px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 12px; line-height: 1.6;
+}
+
+/* ─── Checkbox Grid (skills/tools) ──────────────────────────── */
+.checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 140px;
+  overflow-y: auto;
+}
+.mcp-grid { border-color: rgba(210,153,34,.35); }
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+  transition: border-color .15s, background .15s;
+  white-space: nowrap;
+}
+.checkbox-item:hover { border-color: var(--accent); }
+.checkbox-item input[type="checkbox"] { margin: 0; cursor: pointer; }
+
+/* Tool nativa — verde quando selecionada */
+.checkbox-item.tool-native:has(input:checked) {
+  border-color: var(--green);
+  background: rgba(63,185,80,.12);
+  color: var(--green);
+}
+/* Tool MCP — amarela quando selecionada */
+.checkbox-item.tool-mcp:has(input:checked) {
+  border-color: var(--yellow);
+  background: rgba(210,153,34,.12);
+  color: var(--yellow);
+}
+/* Fallback para skills (sem classe específica) */
+.checkbox-item:not(.tool-native):not(.tool-mcp):has(input:checked) {
+  border-color: var(--green);
+  background: rgba(63,185,80,.12);
+  color: var(--green);
+}
+
+/* Prefixo visual antes do nome da tool */
+.tool-native .tool-name::before { content: "⚙ "; font-size: 10px; opacity: .7; }
+.tool-mcp    .tool-name::before { content: "🔌 "; font-size: 10px; }
+
+/* ─── Crew form ──────────────────────────────────────────────── */
+.agent-section {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.agent-header { display: flex; align-items: center; justify-content: space-between; }
+.agent-badge {
+  font-size: 11px; font-weight: 700;
+  background: var(--accent2); color: #fff;
+  padding: 3px 10px; border-radius: 999px;
+}
+.transition-row {
+  display: grid;
+  grid-template-columns: 1fr 160px auto;
+  gap: 8px; margin-bottom: 6px;
+}
+.transition-row input,
+.transition-row select {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  padding: 6px 8px; font-size: 12px; outline: none;
+  font-family: inherit;
+}
+.transition-row input:focus,
+.transition-row select:focus { border-color: var(--accent); }
+#crew-agents-container { display: flex; flex-direction: column; gap: 14px; }
+.add-agent-bar { display: flex; justify-content: center; margin-top: 8px; }
+
+/* ─── Sprint tasks ───────────────────────────────────────────── */
+.task-section {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: border-color .15s, background .15s;
+}
+.task-section.task-done {
+  background: rgba(63,185,80,.07);
+  border-color: rgba(63,185,80,.4);
+}
+.task-section.task-in-progress {
+  background: rgba(88,166,255,.07);
+  border-color: rgba(88,166,255,.4);
+}
+.task-section.task-open {
+  background: var(--surface2);
+  border-color: var(--border);
+}
+.task-header { display: flex; align-items: center; justify-content: space-between; }
+.task-badge {
+  font-size: 11px; font-weight: 700;
+  background: var(--yellow); color: #000;
+  padding: 3px 10px; border-radius: 999px;
+}
+.task-done        .task-badge { background: var(--green);  color: #000; }
+.task-in-progress .task-badge { background: var(--accent);  color: #fff; }
+.task-open        .task-badge { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
+
+/* ─── Sprint task counter ────────────────────────────────────── */
+.sprint-task-counter {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(88,166,255,.1);
+  border: 1px solid rgba(88,166,255,.25);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ─── Sprint status badges ───────────────────────────────────── */
+.sprint-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sprint-status-open        { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+.sprint-status-in-progress { background: rgba(88,166,255,.15); color: var(--accent); border: 1px solid var(--accent); }
+.sprint-status-done        { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid var(--green); }
+
+/* ─── Updates list (IA) ──────────────────────────────────────── */
+.updates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-height: 44px;
+}
+.update-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+.update-idx {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(88,166,255,.12);
+  border-radius: 999px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ─── Sprint description textarea ────────────────────────────── */
+#sprint-editor-description {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  min-height: 130px;
+}
+
+/* ─── Status badges ──────────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.status-idle    { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+.status-running { background: rgba(88,166,255,.15); color: var(--accent); border: 1px solid var(--accent); animation: pulse 1.5s infinite; }
+.status-success { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid var(--green); }
+.status-error   { background: rgba(248,81,73,.15); color: var(--red); border: 1px solid var(--red); }
+.status-stopped { background: rgba(210,153,34,.15); color: var(--yellow); border: 1px solid var(--yellow); }
+
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: .5; }
+}
+
+/* ─── Confirm input bar ──────────────────────────────────────── */
+#exec-input-bar {
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.btn-confirm {
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+  white-space: nowrap;
+}
+.btn-confirm:hover { opacity: .85; }
+.btn-confirm.btn-confirm-no { background: var(--red); }
+
+/* ─── Exec console ───────────────────────────────────────────── */
+.exec-info-bar {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 8px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
+.console-output {
+  flex: 1;
+  background: #0a0e14;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  overflow-y: auto;
+  font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.55;
+  min-height: 300px;
+  max-height: calc(85vh - 180px);
+}
+
+.console-line { padding: 1px 0; color: #abb2bf; word-break: break-all; font-size: 14px; }
+.console-err  { color: #f85149; }
+.console-ok   { color: #3fb950; }
+.console-info { color: #58a6ff; }
+.console-dim  { color: #6b737d; }
+
+/* ─── Toast ──────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: calc(var(--footer-h) + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  z-index: 999; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.err  { border-color: var(--red); color: var(--red); }
+
+/* ─── Cron scheduler badge ───────────────────────────────────────── */
+.cron-scheduler-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.cron-scheduler-ok   { border-color: var(--green);  background: rgba(63,185,80,.1);  color: var(--green);  }
+.cron-scheduler-warn { border-color: var(--yellow); background: rgba(210,153,34,.1); color: var(--yellow); }
+.cron-scheduler-err  { border-color: var(--red);    background: rgba(248,81,73,.1);  color: var(--red);    }
+
+/* ─── Cron card ──────────────────────────────────────────────────── */
+.cron-card { border-left: 3px solid var(--yellow); }
+.cron-disabled { opacity: .55; filter: grayscale(.4); }
+
+.cron-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cron-on  { background: rgba(63,185,80,.15);  color: var(--green);  border: 1px solid var(--green);  }
+.cron-off { background: rgba(248,81,73,.12);  color: var(--red);    border: 1px solid var(--red);    }
+
+.cron-expression {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 12px;
+  color: var(--yellow);
+  background: rgba(210,153,34,.08);
+  border: 1px solid rgba(210,153,34,.25);
+  border-radius: 6px;
+  padding: 3px 8px;
+  display: inline-block;
+}
+
+.cron-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.btn-toggle-off { background: var(--yellow); color: #000; }
+.btn-toggle-on  { background: var(--green);  color: #000; }
+
+/* ─── Cron editor — preview ──────────────────────────────────────── */
+.cron-preview {
+  font-size: 11px;
+  margin-top: 4px;
+  min-height: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.cron-preview-ok  { color: var(--green); }
+.cron-preview-err { color: var(--red);   }
+.cron-preview-label { color: var(--text-dim); }
+.cron-preview code {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  color: var(--accent);
+}
+
+/* ─── Cron editor — MCP radio group ─────────────────────────────── */
+.cron-mcp-options {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.cron-mcp-radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  user-select: none;
+}
+.cron-mcp-radio input[type="radio"] { cursor: pointer; accent-color: var(--yellow); }
+.cron-mcp-radio code {
+  font-size: 11px;
+  background: rgba(248,81,73,.1);
+  color: var(--red);
+  border: 1px solid rgba(248,81,73,.25);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+
+#cron-editor-prompt {
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 120px;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }

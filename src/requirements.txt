@@ -1,0 +1,12 @@
+google-cloud-aiplatform
+python-dotenv
+mcp
+pymongo
+dnspython
+pyyaml
+prompt_toolkit
+flask
+flask-cors
+croniter
+google-genai
+google-generativeai

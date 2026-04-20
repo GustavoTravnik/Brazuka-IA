@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COIA Panel</title>
+  <link rel="stylesheet" href="style.css?v=__BUILD__">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ═══ HEADER ════════════════════════════════════════════════ -->
+  <header>
+    <div class="logo">COIA <span>AI CLI Assistant</span></div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="home"       onclick="showTab('home')">🏠 Home</button>
+      <button class="tab-btn"        data-tab="skills"     onclick="showTab('skills')">🧠 Skills</button>
+      <button class="tab-btn"        data-tab="mcps"       onclick="showTab('mcps')">🔌 MCPs</button>
+      <button class="tab-btn"        data-tab="commands"   onclick="showTab('commands')">⚡ Commands</button>
+      <button class="tab-btn"        data-tab="prompts"    onclick="showTab('prompts')">📄 Prompts</button>
+      <button class="tab-btn"        data-tab="crews"      onclick="showTab('crews')">🤖 Crews</button>
+      <button class="tab-btn"        data-tab="sprints"    onclick="showTab('sprints')">🏃 Sprints</button>
+      <button class="tab-btn"        data-tab="crons"      onclick="showTab('crons')">⏰ Crons</button>
+      <button class="tab-btn"        data-tab="executions" onclick="showTab('executions')">🚀 Execuções</button>
+    </nav>
+  </header>
+
+  <!-- ═══ MAIN ══════════════════════════════════════════════════ -->
+  <main>
+
+    <!-- ─── HOME ─────────────────────────────────────────────── -->
+    <div id="tab-home" class="tab-panel active">
+      <div class="section-header">
+        <h2 class="section-title">Skills Ativas</h2>
+        <small style="color:var(--text-dim)">Clique para ativar/desativar · Skills padrão sempre carregadas</small>
+      </div>
+      <div id="skill-grid"></div>
+
+      <div class="section-header" style="margin-top:28px">
+        <h2 class="section-title">MCP Servers</h2>
+        <small style="color:var(--text-dim)">Clique para ativar/desativar · Nenhum = inicializa todos</small>
+      </div>
+      <div id="mcp-grid"></div>
+    </div>
+
+    <!-- ─── MCPs ─────────────────────────────────────────────── -->
+    <div id="tab-mcps" class="tab-panel">
+      <div class="section-header">
+        <h2 class="section-title">Gerenciar MCP Servers</h2>
+        <button class="btn" onclick="newMcpEditor()">+ Novo MCP</button>
+      </div>
+      <div id="mcps-list" class="card-grid"></div>
+    </div>
+
+    <!-- ─── SKILLS ───────────────────────────────────────────── -->
+    <div id="tab-skills" class="tab-panel">
+      <div class="section-header">
+        <h2 class="section-title">Gerenciar Skills</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-skill-builder" onclick="launchSkillBuilder()" title="Abre um terminal interativo com o COIA para criar uma skill com qualidade">🧠 Nova Skill com COIA</button>
+          <button class="btn" onclick="newSkillEditor()">+ Nova Skill</button>
+        </div>
+      </div>
+      <div id="skills-list" class="card-grid"></div>
+    </div>
+
+    <!-- ─── COMMANDS ─────────────────────────────────────────── -->
+    <div id="tab-commands" class="tab-panel">
+      <div class="section-header">
+        <h2 class="section-title">Gerenciar Commands</h2>
+        <button class="btn" onclick="newCommandEditor()">+ Novo Command</button>
+      </div>
+      <div id="commands-list" class="card-grid card-grid-sm"></div>
+    </div>
+
+    <!-- ─── PROMPTS ───────────────────────────────────────────── -->
+    <div id="tab-prompts" class="tab-panel">
+      <div class="section-header">
+        <h2 class="section-title">Gerenciar Prompts</h2>
+        <button class="btn" onclick="newPromptEditor()">+ Novo Prompt</button>
+      </div>
+      <div id="prompts-list" class="card-grid card-grid-sm"></div>
+    </div>
+
+    <!-- ─── CREWS ─────────────────────────────────────────────── -->
+    <div id="tab-crews" class="tab-panel">
+      <div class="section-header">
+        <h2 class="section-title">Gerenciar Crews</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-green" onclick="openCrewBuilderModal()">🤖 Nova Crew com COIA</button>
+          <button class="btn" onclick="newCrewEditor()">+ Nova Crew Manual</button>
+        </div>
+      </div>
+      <div id="crews-list" class="card-grid"></div>
+    </div>
+
+    <!-- ─── SPRINTS ────────────────────────────────────────────── -->
+    <div id="tab-sprints" class="tab-panel">
+      <div class="section-header">
+        <h2 class="section-title">Gerenciar Sprints</h2>
+        <button class="btn" onclick="newSprintEditor()">+ Nova Sprint</button>
+      </div>
+      <div id="sprints-list" class="card-grid"></div>
+    </div>
+
+    <!-- ─── CRONS ────────────────────────────────────────────────── -->
+    <div id="tab-crons" class="tab-panel">
+      <div class="section-header">
+        <h2 class="section-title">Gerenciar Crons</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="cron-scheduler-badge" class="cron-scheduler-badge">⏳ verificando...</span>
+          <button class="btn" onclick="newCronEditor()">+ Nova Cron</button>
+        </div>
+      </div>
+      <div id="crons-list" class="card-grid"></div>
+    </div>
+
+    <!-- ─── EXECUÇÕES ─────────────────────────────────────────── -->
+    <div id="tab-executions" class="tab-panel">
+      <div class="section-header">
+        <h2 class="section-title">Execuções de Sprint</h2>
+        <button class="btn" onclick="newExecutionEditor()">+ Nova Execução</button>
+      </div>
+      <div id="executions-list" class="card-grid"></div>
+    </div>
+
+  </main>
+
+  <!-- ═══ FOOTER (Command Line) ═════════════════════════════════ -->
+  <footer>
+    <label>COIA ▶</label>
+    <input id="cmdline" type="text" readonly value="coia">
+    <button class="btn-copy" onclick="copyCmd()">📋 Copiar</button>
+    <button class="btn-launch" onclick="launchSession()">▶ Iniciar Sessão</button>
+  </footer>
+
+</div><!-- #app -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — SKILL EDITOR
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-skill" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-skill')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="skill-editor-title">Skill</span>
+      <button class="modal-close" onclick="closeModal('modal-skill')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nome da Skill <small>(sem espaços — nome do arquivo .md)</small></label>
+        <input id="skill-editor-name" type="text" placeholder="minha-skill">
+      </div>
+      <div class="form-group">
+        <label>Conteúdo (Markdown)</label>
+        <textarea id="skill-editor-content" rows="18" spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-skill')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveSkill()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — CRON EDITOR
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-cron" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-cron')">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-header">
+      <span class="modal-title" id="cron-editor-title">Nova Cron</span>
+      <button class="modal-close" onclick="closeModal('modal-cron')">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Linha 1: slug + enabled -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Slug <small>(nome do arquivo .yaml)</small></label>
+          <input id="cron-editor-name" type="text" placeholder="daily-report">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;padding-top:18px">
+          <label style="flex-direction:row;gap:8px;align-items:center;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0">
+            <input type="checkbox" id="cron-editor-enabled" checked>
+            <span>Cron ativa</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Linha 2: expression + modelo -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Cron Expression <small>(min hora dom mês dow)</small></label>
+          <div style="display:flex;gap:8px">
+            <input id="cron-editor-expression" type="text" placeholder="0 9 * * 1-5"
+              oninput="previewCron()" style="flex:1">
+            <button class="btn-sm btn-edit" onclick="previewCron()" title="Calcular próximas execuções">🔍</button>
+          </div>
+          <div id="cron-preview" class="cron-preview"></div>
+        </div>
+        <div class="form-group">
+          <label>Modelo</label>
+          <select id="cron-editor-model">
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Prompt -->
+      <div class="form-group">
+        <label>Prompt <small>(instrução enviada ao agente quando a cron disparar)</small></label>
+        <textarea id="cron-editor-prompt" rows="7" spellcheck="false"
+          placeholder="Descreva o que o agente deve fazer ao ser acionado por esta cron..."></textarea>
+      </div>
+
+      <hr style="border-color:var(--border)">
+
+      <!-- Skills -->
+      <div class="form-group">
+        <label>Skills <small>(marque as que o agente desta cron deve usar)</small></label>
+        <div class="checkbox-grid" id="cron-skills-grid"></div>
+      </div>
+
+      <!-- MCPs -->
+      <div class="form-group">
+        <label>MCP Servers <small>(nenhum selecionado = inicializa todos)</small></label>
+        <div class="cron-mcp-options">
+          <label class="cron-mcp-radio">
+            <input type="radio" name="cron-mcp-mode" value="all" checked onchange="cronMcpModeChange(this.value)">
+            <span>Todos os MCPs</span>
+          </label>
+          <label class="cron-mcp-radio">
+            <input type="radio" name="cron-mcp-mode" value="none" onchange="cronMcpModeChange(this.value)">
+            <span>Nenhum MCP <code>--no-mcp</code></span>
+          </label>
+          <label class="cron-mcp-radio">
+            <input type="radio" name="cron-mcp-mode" value="select" onchange="cronMcpModeChange(this.value)">
+            <span>Selecionar</span>
+          </label>
+        </div>
+        <div class="checkbox-grid" id="cron-mcps-grid" style="display:none;margin-top:6px"></div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-cron')">Cancelar</button>
+      <button class="btn" style="background:var(--yellow);color:#000;font-weight:700" id="cron-fire-btn"
+        onclick="fireCron()" style="display:none">▶ Disparar agora</button>
+      <button class="btn btn-green" onclick="saveCron()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — MCP EDITOR
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-mcp" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-mcp')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="mcp-editor-title">MCP Server</span>
+      <button class="modal-close" onclick="closeModal('modal-mcp')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nome do MCP <small>(slug — nome do arquivo .py sem extensão)</small></label>
+        <input id="mcp-editor-name" type="text" placeholder="meu-mcp">
+      </div>
+      <div class="form-group">
+        <label>Conteúdo (Python — deve expor <code>async def register(mcp_manager)</code>)</label>
+        <textarea id="mcp-editor-content" rows="20" spellcheck="false"
+          placeholder="import os&#10;&#10;async def register(mcp_manager):&#10;    await mcp_manager.connect_server(&#10;        name=&quot;meu-mcp&quot;,&#10;        command=&quot;npx&quot;,&#10;        args=[&quot;-y&quot;, &quot;@exemplo/mcp-server@latest&quot;],&#10;        env={}&#10;    )"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-mcp')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveMcp()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — COMMAND EDITOR
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-command" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-command')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="cmd-editor-title">Command</span>
+      <button class="modal-close" onclick="closeModal('modal-command')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nome do Command <small>(chamado via /nome na COIA)</small></label>
+        <input id="cmd-editor-name" type="text" placeholder="meu-command">
+      </div>
+      <div class="form-group">
+        <label>Conteúdo (Markdown / instrução)</label>
+        <textarea id="cmd-editor-content" rows="18" spellcheck="false"
+          placeholder="Instrução que será enviada como prompt ao executar /nome-do-command..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-command')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveCommand()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — PROMPT EDITOR
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-prompt" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-prompt')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="prompt-editor-title">Prompt</span>
+      <button class="modal-close" onclick="closeModal('modal-prompt')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nome do Prompt <small>(chamado via #prompt nome na COIA)</small></label>
+        <input id="prompt-editor-name" type="text" placeholder="meu-prompt">
+      </div>
+      <div class="form-group">
+        <label>Conteúdo (Markdown / instrução pré-gerada)</label>
+        <textarea id="prompt-editor-content" rows="20" spellcheck="false"
+          placeholder="Prompt pré-gerado para usar com #prompt nome-do-prompt..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-prompt')">Cancelar</button>
+      <button class="btn btn-green" onclick="savePrompt()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — CREW BUILDER (Nova Crew com COIA)
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-crew-builder" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-crew-builder')">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <span class="modal-title">🤖 Nova Crew com COIA</span>
+      <button class="modal-close" onclick="closeModal('modal-crew-builder')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px">
+        Descreva o tipo de crew que você quer criar e o COIA vai gerar automaticamente
+        todos os agentes, skills, transições e fluxo completo baseado nas crews existentes.
+      </p>
+
+      <div class="form-group">
+        <label>Nome da Crew <small>(será o slug do arquivo .yaml)</small></label>
+        <input id="crew-builder-name" type="text" placeholder="Ex: minha-nova-crew">
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de Crew</label>
+        <select id="crew-builder-type">
+          <option value="">— Selecione o tipo —</option>
+          <option value="bug-resolution">🐛 Resolução de Bugs</option>
+          <option value="dotnet-development">🔷 Desenvolvimento .NET</option>
+          <option value="nodejs-development">🟢 Desenvolvimento Node.js/TypeScript</option>
+          <option value="python-development">🐍 Desenvolvimento Python</option>
+          <option value="java-development">☕ Desenvolvimento Java</option>
+          <option value="mobile-flutter">📱 Desenvolvimento Mobile (Flutter)</option>
+          <option value="mobile-native">📱 Desenvolvimento Mobile Nativo (iOS + Android)</option>
+          <option value="fullstack-web">🌐 Desenvolvimento Fullstack Web</option>
+          <option value="api-backend">⚙️ Desenvolvimento de API / Backend</option>
+          <option value="infra-devops">🏗️ Infraestrutura / DevOps / CI-CD</option>
+          <option value="data-pipeline">📊 Pipeline de Dados / ETL</option>
+          <option value="migration">🔄 Migração de Sistema / Refatoração</option>
+          <option value="code-review">👀 Code Review / PR Review</option>
+          <option value="investigation">🔍 Investigação / Análise Técnica</option>
+          <option value="documentation">📝 Documentação Técnica</option>
+          <option value="testing">🧪 Testes / QA</option>
+          <option value="custom">🎯 Personalizado (descreva abaixo)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Objetivo da Crew <small>(descreva com o máximo de detalhes o que a crew deve fazer)</small></label>
+        <textarea id="crew-builder-objective" rows="6" spellcheck="false"
+          placeholder="Ex: Preciso de uma crew que receba um issue do Jira, investigue o código-fonte nos repositórios da organização, identifique a causa raiz, aplique a correção, rode os testes e gere um relatório final. A stack principal é .NET 8 com MongoDB e AWS Lambda..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Stack / Tecnologias <small>(opcional — ajuda o COIA a escolher as skills certas)</small></label>
+        <input id="crew-builder-stack" type="text"
+          placeholder="Ex: .NET 8, MongoDB, AWS Lambda, React, PostgreSQL...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-crew-builder')">Cancelar</button>
+      <button class="btn btn-green" onclick="launchCrewBuilder()">🚀 Gerar Crew com COIA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — CREW EDITOR
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-crew" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-crew')">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-header">
+      <span class="modal-title" id="crew-editor-title">Crew</span>
+      <button class="modal-close" onclick="closeModal('modal-crew')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nome da Crew <small>(nome do arquivo .yaml — não pode ser alterado após criação)</small></label>
+        <input id="crew-editor-name" type="text" placeholder="minha-crew">
+      </div>
+      <div class="form-group">
+        <label>Título <small>(nome de exibição — pode ser editado livremente)</small></label>
+        <input id="crew-editor-crew-title" type="text" placeholder="Ex: Resolvedor de Issues Jira">
+      </div>
+      <div class="form-group">
+        <label>Descrição <small>(o que esta crew faz — não afeta a execução)</small></label>
+        <textarea id="crew-editor-description" rows="3" spellcheck="false"
+          oninput="State.crewEditor.description=this.value"
+          placeholder="Descreva o propósito desta crew, os agentes envolvidos e o fluxo de trabalho..."></textarea>
+      </div>
+      <hr style="border-color:var(--border)">
+      <div class="section-header" style="margin-bottom:0">
+        <span style="font-size:13px;font-weight:600;color:var(--text-dim)">AGENTES</span>
+      </div>
+      <div id="crew-agents-container"></div>
+      <div class="add-agent-bar">
+        <button class="btn btn-green" onclick="addAgent()">+ Adicionar Agente</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-crew')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveCrew()">💾 Salvar Crew</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — SPRINT EDITOR
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-sprint" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-sprint')">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-header">
+      <span class="modal-title" id="sprint-editor-title">Sprint</span>
+      <button class="modal-close" onclick="closeModal('modal-sprint')">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Linha 1: slug + título -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Slug da Sprint <small>(nome do arquivo .yaml)</small></label>
+          <input id="sprint-editor-name" type="text" placeholder="sprint-2025-01">
+        </div>
+        <div class="form-group">
+          <label>Título da Sprint</label>
+          <input id="sprint-editor-title-input" type="text" placeholder="Sprint Janeiro 2025">
+        </div>
+      </div>
+
+      <!-- Linha 2: status -->
+      <div class="form-group">
+        <label>Status da Sprint</label>
+        <select id="sprint-editor-status" oninput="State.sprintEditor.status=this.value">
+          <option value="open">⬜ open</option>
+          <option value="in_progress">🔄 in_progress</option>
+          <option value="done">✅ done</option>
+        </select>
+      </div>
+
+      <!-- Linha 3: description (markdown) -->
+      <div class="form-group">
+        <label>Descrição / Prompt <small>(markdown — guia para a IA executar a sprint)</small></label>
+        <textarea id="sprint-editor-description" rows="6" spellcheck="false"
+          oninput="State.sprintEditor.description=this.value"
+          placeholder="Descreva em Markdown o objetivo desta sprint, contexto, regras e qualquer informação relevante para a IA..."></textarea>
+      </div>
+
+      <!-- Updates da sprint (read-only) -->
+      <div class="form-group">
+        <label>Updates da IA na Sprint <small>(somente leitura — preenchido automaticamente)</small></label>
+        <div id="sprint-updates-list" class="updates-list">
+          <span style="color:var(--text-dim);font-size:12px">Nenhum update registrado pela IA ainda.</span>
+        </div>
+      </div>
+
+      <hr style="border-color:var(--border)">
+
+      <!-- Tarefas -->
+      <div class="section-header" style="margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600;color:var(--text-dim)">TAREFAS</span>
+        <button class="btn-sm btn-add" onclick="addSprintTask()">+ Adicionar Tarefa</button>
+      </div>
+      <div id="sprint-tasks-container" style="display:flex;flex-direction:column;gap:10px"></div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-sprint')">Cancelar</button>
+      <button class="btn btn-coia" id="sprint-modal-coia-btn" onclick="launchSprintSessionFromModal()">▶ Abrir no COIA</button>
+      <button class="btn" style="background:var(--orange);color:#fff" id="sprint-modal-exec-btn" onclick="openRunWithCrewModal()">🤖 Executar com Crew</button>
+      <button class="btn btn-green" id="sprint-modal-save-btn" onclick="saveSprint()">💾 Salvar Sprint</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — EXECUTAR SPRINT COM CREW
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-run-crew" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-run-crew')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">🤖 Executar com Crew</span>
+      <button class="modal-close" onclick="closeModal('modal-run-crew')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="run-crew-sprint-info" id="run-crew-sprint-info"></div>
+      <div class="form-group">
+        <label>Crew <small>(time de agentes que irá executar a sprint)</small></label>
+        <select id="run-crew-select"></select>
+      </div>
+      <div class="form-group">
+        <label>Título da Execução <small>(opcional — gerado automaticamente se vazio)</small></label>
+        <input id="run-crew-title" type="text" placeholder="Ex: Resolução BIZ-456 - Backend">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-run-crew')">Cancelar</button>
+      <button class="btn" style="background:var(--orange);color:#fff;font-weight:700" onclick="runSprintWithCrew()">🚀 Criar e Iniciar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — EXECUÇÃO EDITOR (nova execução)
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-execution" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-execution')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title">Nova Execução de Sprint</span>
+      <button class="modal-close" onclick="closeModal('modal-execution')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Título da Execução</label>
+        <input id="exec-editor-title" type="text" placeholder="Ex: Sprint Jan - Crew Backend">
+      </div>
+      <div class="form-group">
+        <label>Sprint</label>
+        <select id="exec-editor-sprint"></select>
+      </div>
+      <div class="form-group">
+        <label>Crew</label>
+        <select id="exec-editor-crew"></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-execution')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveExecution()">✅ Criar Execução</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL — EXECUÇÃO CONSOLE (view/run)
+════════════════════════════════════════════════════════════════ -->
+<div id="modal-exec-console" class="modal-overlay" onclick="if(event.target===this)closeExecConsole()">
+  <div class="modal modal-console">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:12px;flex:1">
+        <span class="modal-title" id="exec-console-title">Execução</span>
+        <span id="exec-console-badge" class="status-badge">idle</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div id="exec-input-bar" style="display:none;align-items:center;gap:6px">
+          <span style="font-size:12px;color:var(--yellow);font-weight:600">⚠ Aguardando confirmação:</span>
+          <button class="btn btn-confirm" onclick="sendInput('y')">✅ Y (sim)</button>
+          <button class="btn btn-confirm btn-confirm-no" onclick="sendInput('n')">❌ N (não)</button>
+        </div>
+        <button id="exec-start-btn" class="btn btn-green" onclick="startExecution()">▶ Start</button>
+        <button id="exec-stop-btn" class="btn" style="background:var(--red);display:none" onclick="stopExecution()">⬛ Stop</button>
+        <button class="modal-close" onclick="closeExecConsole()">×</button>
+      </div>
+    </div>
+    <div class="modal-body" style="gap:8px">
+      <div class="exec-info-bar" id="exec-info-bar"></div>
+      <div id="exec-console-output" class="console-output"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ══════════════════════════════════════════════════ -->
+<div id="toast" class="toast"></div>
+
+<script src="app.js?v=__BUILD__"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "▶ Run app.py",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "app.py",
+        "--skills",
+        "[optimize-shell-execution,rtk-gain]"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/src"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🖥 Start Panel Server",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "panel/start.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/src"
+      },
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": false
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "🚀 COIA Panel",
+          "endsPattern": "."
+        }
+      }
+    },
+    {
+      "label": "🚀 Run All (Panel + app.py)",
+      "dependsOn": [
+        "🖥 Start Panel Server",
+        "▶ Run app.py"
+      ],
+      "dependsOrder": "parallel",
+      "group": "none",
+      "problemMatcher": []
+    }
+  ]
+}
