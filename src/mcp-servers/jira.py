@@ -10,7 +10,7 @@ import os
 async def register(mcp_manager):
     token = os.getenv("JIRA_API_TOKEN")
     email = os.getenv("JIRA_USER_EMAIL")
-    site = os.getenv("JIRA_SITE")
+    site = "open-co"
 
     if not token or not email:
         print("[!] Jira: Variáveis JIRA_API_TOKEN ou JIRA_USER_EMAIL não encontradas.")

@@ -4,7 +4,7 @@ import os
 class SemanticRouter:
     def __init__(self, client, model_id: str | None = None):
         self.client = client
-        self.model_id = model_id or os.getenv("MODEL_GEMINI_FLASH", "gemini-2.5-flash")
+        self.model_id = model_id or os.getenv("MODEL_GEMINI_FLASH", "gemini-1.5-flash")
 
     async def evaluate(self, agent_name: str, output: str, transitions: list[dict]) -> str | None:
         if not transitions:

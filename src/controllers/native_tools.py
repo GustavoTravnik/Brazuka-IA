@@ -39,7 +39,7 @@ _BINARY_EXTS: frozenset[str] = frozenset({
     ".pdf", ".docx", ".xlsx", ".pptx",
 })
 
-# ── Schemas de ferramentas (otimizado para Gemini) ───────────────
+# ── Schemas de ferramentas (definição) ───────────────
 TOOLS_DEFINITIONS: list[dict] = [
     {
         "name": "read_files",

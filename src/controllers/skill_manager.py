@@ -2,7 +2,7 @@ import os
 
 BLUE_BOLD, RESET = "\033[1;34m", "\033[0m"
 
-DEFAULT_SKILLS = ["agent-performance", "clean-code", "install-on-demand"]
+DEFAULT_SKILLS = ["agent-performance"]
 
 
 class SkillManager:

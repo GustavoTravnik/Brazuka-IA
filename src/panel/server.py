@@ -22,6 +22,7 @@ if _BASE not in sys.path:
 
 from services.daemon_client import daemon as _daemon
 from services import cron_scheduler as _cron
+from controllers.skill_manager import DEFAULT_SKILLS as _DEFAULT_SKILLS
 
 PANEL_DIR       = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR        = os.path.dirname(PANEL_DIR)
@@ -94,6 +95,10 @@ def list_skills():
         name = os.path.splitext(os.path.basename(f))[0]
         skills.append({"name": name, "description": _extract_skill_description(f)})
     return jsonify(skills)
+
+@app.route("/api/skills/defaults", methods=["GET"])
+def get_default_skills():
+    return jsonify(_DEFAULT_SKILLS)
 
 @app.route("/api/skills/<name>", methods=["GET"])
 def get_skill(name):
@@ -665,11 +670,37 @@ def start_execution(exec_id):
 
 @app.route("/api/executions/<exec_id>/stop", methods=["POST"])
 def stop_execution(exec_id):
-    """Para a execução via daemon."""
+    """Para a execução via daemon, com fallback de kill direto pelo PID."""
+    import signal as _signal
+
+    stopped = False
     try:
-        _daemon.stop(exec_id)
+        result = _daemon.stop(exec_id)
+        stopped = result.get("ok", False)
     except Exception:
         pass
+
+    # Fallback: daemon pode ter reiniciado e perdido o processo da dict interna.
+    # Nesse caso, lemos o PID do .daemon.json e matamos diretamente.
+    if not stopped:
+        daemon_path = Path(EXECUTIONS_DIR) / f"{exec_id}.daemon.json"
+        if daemon_path.exists():
+            try:
+                daemon_state = json.loads(daemon_path.read_text(encoding="utf-8"))
+                pid = daemon_state.get("pid")
+                if pid:
+                    try:
+                        os.kill(pid, _signal.SIGTERM)
+                        stopped = True
+                    except (ProcessLookupError, OSError):
+                        pass  # processo já morreu — ok
+                # Atualiza o .daemon.json para refletir o stop
+                daemon_state["status"] = "stopped"
+                daemon_state["finished_at"] = datetime.now().isoformat()
+                daemon_path.write_text(json.dumps(daemon_state, ensure_ascii=False), encoding="utf-8")
+            except Exception:
+                pass
+
     data = _load_execution(exec_id)
     if data:
         data["status"]      = "stopped"
@@ -680,11 +711,11 @@ def stop_execution(exec_id):
 
 @app.route("/api/executions/<exec_id>/input", methods=["POST"])
 def send_input(exec_id):
-    """Envia texto ao stdin do processo via daemon."""
+    """Envia texto ao stdin do processo via daemon (aceita qualquer texto)."""
     body = request.get_json(silent=True) or {}
-    text = body.get("text", "").strip()
-    if text not in ("y", "n", "Y", "N", "yes", "no", ""):
-        return jsonify({"error": "Valor inválido — use y ou n"}), 400
+    text = body.get("text", "")
+    if not isinstance(text, str):
+        return jsonify({"error": "Campo 'text' deve ser string"}), 400
     try:
         result = _daemon.send_stdin(exec_id, text)
         return jsonify(result)
@@ -732,7 +763,7 @@ def get_execution_logs(exec_id):
 # ─────────────────────────────────────────────
 _CRON_DEFAULTS = {
     "enabled": True,
-    "model":   "gemini-2.5-flash",
+    "model":   "gemini-1.5-flash",
     "skills":  [],
     "mcps":    None,
     "prompt":  "",
@@ -1020,7 +1051,7 @@ def start_crew_builder_session():
     # Mapeamento de tipo para descrição detalhada
     type_descriptions = {
         "bug-resolution": "Resolução de bugs — recebe um issue/bug report, investiga logs e código, identifica a causa raiz, aplica a correção e gera relatório",
-        "dotnet-development": "Desenvolvimento de aplicação .NET/C# — APIs, serviços, processors",
+        "dotnet-development": "Desenvolvimento de aplicação .NET/C# — APIs, serviços, processors com patterns do ecossistema Open-Co",
         "nodejs-development": "Desenvolvimento Node.js/TypeScript — APIs REST, serviços, processadores assíncronos",
         "python-development": "Desenvolvimento Python — scripts, APIs FastAPI/Flask, processamento de dados, ML",
         "java-development": "Desenvolvimento Java — APIs Spring Boot, microserviços, processamento",
@@ -1065,7 +1096,7 @@ description: |
 
 crew:
   - name: Nome do Agente
-    modelId: gemini-2.5-flash
+    modelId: gemini-1.5-flash
     clean_context_after_run: true
     persona: |
       Descrição detalhada da persona do agente...
@@ -1094,14 +1125,14 @@ crew:
 ## Regras obrigatórias para criação da crew
 
 ### 1. SEMPRE tenha um Gerente/Orquestrador
-- Use modelId `gemini-2.5-flash` (barato e rápido — ele só roteia)
+- Use modelId `claude-haiku-4-5` (barato e rápido — ele só roteia)
 - Persona: roteador operacional puro, NÃO executa código, NÃO cria tarefas
 - Ele lê a sprint, identifica a próxima tarefa e delega ao agente correto
 - Deve ter transitions claras para cada agente da crew
 - O Gerente é SEMPRE o primeiro agente da lista (entry point)
 
 ### 2. SEMPRE tenha um Arquiteto/Planejador
-- Use modelId `gemini-2.5-pro` (mais inteligente — planeja bem)
+- Use modelId `gemini-1.5-pro` (mais inteligente — planeja bem)
 - NÃO escreve código, NÃO executa comandos — apenas PLANEJA e cria tarefas na sprint
 - Lê o projeto fonte (se houver), analisa a especificação e cria tarefas [DEV] e [TEST]
 - Cada tarefa deve ser atômica e autocontida com toda a informação necessária
@@ -1109,7 +1140,7 @@ crew:
 - Skill obrigatória: coia-task-manager
 
 ### 3. Tenha ao menos 1 agente Desenvolvedor
-- Use modelId `gemini-2.5-flash` (bom equilíbrio custo/qualidade)
+- Use modelId `gemini-1.5-flash` (bom equilíbrio custo/qualidade)
 - Implementa exatamente o que está descrito na tarefa [DEV]
 - Faz commit ao concluir cada tarefa (segue skill coia-task-manager)
 - Se encontrar dúvida, encaminha de volta ao Gerente
@@ -1117,13 +1148,13 @@ crew:
   (ex: Dev Backend + Dev Frontend, ou Dev iOS + Dev Android)
 
 ### 4. Tenha um agente de QA/Testes
-- Use modelId `gemini-2.5-flash` (testes são mais mecânicos)
+- Use modelId `claude-haiku-4-5` (testes são mais mecânicos)
 - Implementa testes para as tarefas [TEST] criadas pelo Arquiteto
 - NÃO modifica código de produção — se achar bug, reporta ao Gerente
 - Faz commit dos testes
 
 ### 5. Opcionalmente, tenha um Code Janitor (limpeza pós-sprint)
-- Use modelId `gemini-2.5-flash`
+- Use modelId `claude-haiku-4-5`
 - Roda DEPOIS de todas as tarefas DEV e TEST estarem done
 - Remove artefatos de build, comentários desnecessários, imports mortos
 - Marca a sprint como done
@@ -1335,3 +1366,5 @@ if __name__ == "__main__":
     os.makedirs(EXECUTIONS_DIR, exist_ok=True)
     print("🚀 COIA Panel rodando em http://localhost:5005")
     app.run(host="0.0.0.0", port=5005, debug=True, threaded=True)
+e)
+

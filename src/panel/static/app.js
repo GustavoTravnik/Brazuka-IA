@@ -2,9 +2,9 @@
 // COIA PANEL — app.js  (skills, crews, commands, prompts, sprints, execuções)
 // ═══════════════════════════════════════════════════════════════════
 
-const DEFAULT_SKILLS = ["agent-performance", "clean-code", "install-on-demand"];
+let DEFAULT_SKILLS = []; // populado em init() via /api/skills/defaults
 
-const CRON_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash"];
+const CRON_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro"];
 
 // ─── Estado global ───────────────────────────────────────────────
 const State = {
@@ -17,7 +17,7 @@ const State = {
   sprints:   [],
   executions:[],
   tools:     { native: [], mcp: [] },
-  selectedSkills: new Set(DEFAULT_SKILLS),
+  selectedSkills: new Set(),
   // new Set() vazio = nenhum MCP (comportamento padrão — use --mcps para selecionar)
   // null = todos os MCPs
   selectedMcps: new Set(),
@@ -474,7 +474,7 @@ async function renderCronsList() {
       <code class="cron-expression">${esc(cr.expression)}</code>
       <p class="mgmt-card-desc" style="white-space:pre-wrap;-webkit-line-clamp:3">${esc((cr.prompt || "").slice(0, 120))}${cr.prompt && cr.prompt.length > 120 ? "…" : ""}</p>
       <div class="cron-meta">
-        <span>🧠 ${cr.model || "sonnet"}</span>
+        <span>🧠 ${cr.model || "flash"}</span>
         ${cr.skills && cr.skills.length ? `<span>📚 ${cr.skills.length} skill(s)</span>` : ""}
         <span>${cr.mcps === null ? "🔌 todos MCPs" : cr.mcps.length === 0 ? "🚫 sem MCP" : `🔌 ${cr.mcps.length} MCP(s)`}</span>
       </div>
@@ -574,7 +574,7 @@ function _fillCronModal(cr, isNew) {
   document.getElementById("cron-editor-name").disabled     = !isNew;
   document.getElementById("cron-editor-enabled").checked   = cr.enabled !== false;
   document.getElementById("cron-editor-expression").value  = cr.expression || "0 9 * * 1-5";
-  document.getElementById("cron-editor-model").value       = cr.model || "gemini-2.5-flash";
+  document.getElementById("cron-editor-model").value       = cr.model || "gemini-1.5-flash";
   document.getElementById("cron-editor-prompt").value      = cr.prompt || "";
 
   // Radio MCP
@@ -597,7 +597,7 @@ function _fillCronModal(cr, isNew) {
 function newCronEditor() {
   _fillCronModal({
     name: "", expression: "0 9 * * 1-5", prompt: "",
-    model: "gemini-2.5-flash", skills: [], mcps: null, enabled: true,
+    model: "gemini-1.5-flash", skills: [], mcps: null, enabled: true,
   }, true);
   showModal("modal-cron");
 }
@@ -952,7 +952,7 @@ function renderCrewsList() {
 function agentTemplate() {
   return {
     name: "",
-    modelId: "gemini-2.5-flash",
+    modelId: "gemini-1.5-flash",
     clean_context_after_run: true,
     skills: ["optimize-shell-execution", "rtk-gain"],
     persona: "",
@@ -1048,7 +1048,7 @@ function renderCrewForm() {
         <div class="form-group">
           <label>Modelo</label>
           <select onchange="updateAgent(${idx},'modelId',this.value)">
-            ${["gemini-2.5-pro","gemini-2.5-flash","gemini-2.5-flash"].map(m =>
+            ${["claude-opus-4-6","gemini-1.5-flash","claude-haiku-4-5"].map(m =>
               `<option ${agent.modelId===m?"selected":""}>${m}</option>`
             ).join("")}
           </select>
@@ -1652,14 +1652,19 @@ function stripAnsi(str) {
   return str.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
-// Padrões que indicam que o processo está aguardando Y/N do usuário
+// Padrões que indicam que o processo está aguardando input do usuário (Y/N ou texto livre)
 const CONFIRM_PATTERNS = [
   /\(Y\/n\)/i,
   /\(y\/N\)/i,
+  /\[Y\/n\]/i,
+  /\[y\/N\]/i,
   /Deseja retomar de onde parou\?/i,
   /Carregar AGENT\.md\?/i,
   /confirmar\?/i,
   /\[s\/n\]/i,
+  /pressione qualquer tecla/i,
+  /aguardando (input|confirmação|resposta)/i,
+  /Você ➔\s*$/,          // prompt interativo do COIA aguardando input
 ];
 
 function appendConsoleLine(raw) {
@@ -1758,16 +1763,33 @@ async function startExecution() {
 
 async function stopExecution() {
   if (!State.currentExecId) return;
+
+  // Feedback visual imediato — não espera o servidor
+  if (State.execPollTimer) { clearInterval(State.execPollTimer); State.execPollTimer = null; }
+  document.getElementById("exec-start-btn").style.display = "";
+  document.getElementById("exec-stop-btn").style.display  = "none";
+  document.getElementById("exec-input-bar").style.display = "none";
+  const fi = document.getElementById("exec-free-input");
+  if (fi) fi.value = "";
+  const badge = document.getElementById("exec-console-badge");
+  if (badge) { badge.className = "status-badge status-stopped"; badge.textContent = "stopped"; }
+
   try {
     await api("POST", `/api/executions/${State.currentExecId}/stop`);
     toast("Execução parada.");
-    if (State.execPollTimer) { clearInterval(State.execPollTimer); State.execPollTimer = null; }
-    document.getElementById("exec-start-btn").style.display = "";
-    document.getElementById("exec-stop-btn").style.display  = "none";
-    document.getElementById("exec-input-bar").style.display = "none";
-    State.executions = await api("GET", "/api/executions");
-    if (State.activeTab === "executions") renderExecutionsList();
-  } catch (e) { toast(e.message, "err"); }
+  } catch (e) {
+    toast("Stop enviado (pode haver atraso).", "ok");
+  }
+
+  // Faz um último drain de logs para capturar o que saiu antes do kill
+  try {
+    const tail = await api("GET", `/api/executions/${State.currentExecId}/logs?since=${State.execLastLogIdx}`);
+    tail.logs.forEach(l => appendConsoleLine(l));
+    State.execLastLogIdx += tail.logs.length;
+  } catch (_) {}
+
+  State.executions = await api("GET", "/api/executions");
+  if (State.activeTab === "executions") renderExecutionsList();
 }
 
 async function sendInput(value) {
@@ -1775,14 +1797,23 @@ async function sendInput(value) {
   try {
     await api("POST", `/api/executions/${State.currentExecId}/input`, { text: value });
     document.getElementById("exec-input-bar").style.display = "none";
+    const fi = document.getElementById("exec-free-input");
+    if (fi) fi.value = "";
     toast(`Enviado: ${value}`);
   } catch (e) { toast(e.message, "err"); }
+}
+
+async function sendFreeInput() {
+  const fi = document.getElementById("exec-free-input");
+  const value = fi ? fi.value.trim() : "";
+  if (!value) { toast("Digite algo antes de enviar.", "err"); return; }
+  await sendInput(value);
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────
 async function init() {
   try {
-    const [skills, mcps, crons, crews, commands, prompts, sprints, executions, tools] =
+    const [skills, mcps, crons, crews, commands, prompts, sprints, executions, tools, defaultSkills] =
       await Promise.all([
         api("GET", "/api/skills"),
         api("GET", "/api/mcps"),
@@ -1793,15 +1824,18 @@ async function init() {
         api("GET", "/api/sprints"),
         api("GET", "/api/executions"),
         api("GET", "/api/tools"),
+        api("GET", "/api/skills/defaults"),
       ]);
-    State.skills     = skills;
-    State.mcps       = mcps;
-    State.crons      = crons;
-    State.crews      = crews;
-    State.commands   = commands;
-    State.prompts    = prompts;
-    State.sprints    = sprints;
-    State.executions = executions;
+    State.skills         = skills;
+    State.mcps           = mcps;
+    State.crons          = crons;
+    State.crews          = crews;
+    State.commands       = commands;
+    State.prompts        = prompts;
+    State.sprints        = sprints;
+    State.executions     = executions;
+    DEFAULT_SKILLS       = defaultSkills || [];
+    State.selectedSkills = new Set(DEFAULT_SKILLS);
     // /api/tools retorna { native: [...], mcp: [...] }
     State.tools = (tools && tools.native) ? tools : { native: tools || [], mcp: [] };
     renderHome();
@@ -1825,3 +1859,6 @@ document.addEventListener("visibilitychange", () => {
     });
   }
 });
+
+});
+

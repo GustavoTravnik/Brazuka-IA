@@ -9,7 +9,7 @@ Cada cron YAML tem o formato:
   name:        str
   expression:  str   (cron expression — 5 campos: min hour dom month dow)
   prompt:      str
-  model:       str   (ex: gemini-2.5-flash)
+  model:       str   (ex: gemini-1.5-flash)
   skills:      list[str]
   mcps:        list[str] | null   (null = todos, [] = nenhum)
   enabled:     bool  (default true)
@@ -160,7 +160,7 @@ def _evaluate(path: str, now: datetime, now_minute: str) -> None:
 
 def _fire(name: str, cfg: dict) -> None:
     prompt  = (cfg.get("prompt") or "").strip()
-    model   = (cfg.get("model") or "gemini-2.5-flash").strip()
+    model   = (cfg.get("model") or "gemini-1.5-flash").strip()
     skills  = cfg.get("skills") or []
     mcps    = cfg.get("mcps")    # None = todos, [] = nenhum
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BrazukaIA Panel</title>
+  <title>COIA Panel</title>
   <link rel="stylesheet" href="style.css?v=__BUILD__">
 </head>
 <body>
@@ -12,7 +12,7 @@
 
   <!-- ═══ HEADER ════════════════════════════════════════════════ -->
   <header>
-    <div class="logo">BrazukaIA <span>AI CLI Assistant</span></div>
+    <div class="logo">COIA <span>AI CLI Assistant</span></div>
     <nav class="tabs">
       <button class="tab-btn active" data-tab="home"       onclick="showTab('home')">🏠 Home</button>
       <button class="tab-btn"        data-tab="skills"     onclick="showTab('skills')">🧠 Skills</button>
@@ -58,7 +58,7 @@
       <div class="section-header">
         <h2 class="section-title">Gerenciar Skills</h2>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-skill-builder" onclick="launchSkillBuilder()" title="Abre um terminal interativo com o COIA para criar uma skill com qualidade">🧠 Nova Skill com BrazukaIA</button>
+          <button class="btn btn-skill-builder" onclick="launchSkillBuilder()" title="Abre um terminal interativo com o COIA para criar uma skill com qualidade">🧠 Nova Skill com COIA</button>
           <button class="btn" onclick="newSkillEditor()">+ Nova Skill</button>
         </div>
       </div>
@@ -88,7 +88,7 @@
       <div class="section-header">
         <h2 class="section-title">Gerenciar Crews</h2>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-green" onclick="openCrewBuilderModal()">🤖 Nova Crew com BrazukaIA</button>
+          <button class="btn btn-green" onclick="openCrewBuilderModal()">🤖 Nova Crew com COIA</button>
           <button class="btn" onclick="newCrewEditor()">+ Nova Crew Manual</button>
         </div>
       </div>
@@ -129,8 +129,8 @@
 
   <!-- ═══ FOOTER (Command Line) ═════════════════════════════════ -->
   <footer>
-    <label>BrazukaIA ▶</label>
-    <input id="cmdline" type="text" readonly value="brazukaia">
+    <label>COIA ▶</label>
+    <input id="cmdline" type="text" readonly value="coia">
     <button class="btn-copy" onclick="copyCmd()">📋 Copiar</button>
     <button class="btn-launch" onclick="launchSession()">▶ Iniciar Sessão</button>
   </footer>
@@ -202,9 +202,8 @@
         <div class="form-group">
           <label>Modelo</label>
           <select id="cron-editor-model">
-            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+            <option value="gemini-1.5-pro">gemini-1.5-pro</option>
           </select>
         </div>
       </div>
@@ -341,7 +340,7 @@
 <div id="modal-crew-builder" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-crew-builder')">
   <div class="modal" style="max-width:680px">
     <div class="modal-header">
-      <span class="modal-title">🤖 Nova Crew com BrazukaIA</span>
+      <span class="modal-title">🤖 Nova Crew com COIA</span>
       <button class="modal-close" onclick="closeModal('modal-crew-builder')">×</button>
     </div>
     <div class="modal-body">
@@ -499,7 +498,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn" style="background:var(--surface2);color:var(--text)" onclick="closeModal('modal-sprint')">Cancelar</button>
-      <button class="btn btn-coia" id="sprint-modal-coia-btn" onclick="launchSprintSessionFromModal()">▶ Abrir no BrazukaIA</button>
+      <button class="btn btn-coia" id="sprint-modal-coia-btn" onclick="launchSprintSessionFromModal()">▶ Abrir no COIA</button>
       <button class="btn" style="background:var(--orange);color:#fff" id="sprint-modal-exec-btn" onclick="openRunWithCrewModal()">🤖 Executar com Crew</button>
       <button class="btn btn-green" id="sprint-modal-save-btn" onclick="saveSprint()">💾 Salvar Sprint</button>
     </div>
@@ -574,10 +573,14 @@
         <span id="exec-console-badge" class="status-badge">idle</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <div id="exec-input-bar" style="display:none;align-items:center;gap:6px">
-          <span style="font-size:12px;color:var(--yellow);font-weight:600">⚠ Aguardando confirmação:</span>
-          <button class="btn btn-confirm" onclick="sendInput('y')">✅ Y (sim)</button>
-          <button class="btn btn-confirm btn-confirm-no" onclick="sendInput('n')">❌ N (não)</button>
+        <div id="exec-input-bar" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--yellow);font-weight:600">⚠ Aguardando input:</span>
+          <button class="btn btn-confirm" onclick="sendInput('y')">✅ Y</button>
+          <button class="btn btn-confirm btn-confirm-no" onclick="sendInput('n')">❌ N</button>
+          <input id="exec-free-input" type="text" placeholder="ou digite texto livre..."
+            style="flex:1;min-width:140px;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px"
+            onkeydown="if(event.key==='Enter'){sendFreeInput();event.preventDefault();}">
+          <button class="btn btn-confirm" onclick="sendFreeInput()">↵ Enviar</button>
         </div>
         <button id="exec-start-btn" class="btn btn-green" onclick="startExecution()">▶ Start</button>
         <button id="exec-stop-btn" class="btn" style="background:var(--red);display:none" onclick="stopExecution()">⬛ Stop</button>
