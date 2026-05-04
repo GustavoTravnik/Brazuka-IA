@@ -1289,15 +1289,7 @@ def start_sprint_session():
         return jsonify({"error": f"Erro ao ler sprint: {e}"}), 500
 
     # Skills padrão + adicionais sem duplicatas
-    default_skills = [
-        "agent-performance",
-        "clean-code",
-        "install-on-demand",
-        "coia-task-manager",
-        "jira-sprint-closure",
-        "META-github-repos-map",
-        "prod-safety",
-    ]
+    default_skills = []
     all_skills = default_skills + [s for s in extra_skills if s not in default_skills]
     skills_arg = f'--skills "[{",".join(all_skills)}]"'
 
@@ -1366,5 +1358,5 @@ if __name__ == "__main__":
     os.makedirs(EXECUTIONS_DIR, exist_ok=True)
     print("🚀 COIA Panel rodando em http://localhost:5005")
     app.run(host="0.0.0.0", port=5005, debug=True, threaded=True)
-e)
+
 

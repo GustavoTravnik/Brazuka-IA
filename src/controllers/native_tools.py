@@ -43,121 +43,77 @@ _BINARY_EXTS: frozenset[str] = frozenset({
 TOOLS_DEFINITIONS: list[dict] = [
     {
         "name": "read_files",
-        "description": (
-            "LEITURA RÁPIDA DE ARQUIVOS. Lê um ou mais arquivos de texto em batch de uma só chamada. "
-            "PRIORIZE esta ferramenta antes de qualquer shell_execute para investigar código. "
-            "Arquivos binários e acima de 200 KB são ignorados automaticamente."
-        ),
+        "description": "Read text files in batch.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "paths": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Lista de caminhos dos arquivos a serem lidos.",
-                }
+                "paths": {"type": "array", "items": {"type": "string"}}
             },
             "required": ["paths"],
         },
     },
     {
         "name": "shell_execute",
-        "description": (
-            "EXECUÇÃO DE COMANDOS NO TERMINAL. "
-            "Use SOMENTE para: listar diretórios (ls, find), buscar padrões (grep), "
-            "executar testes/builds, comandos git ou outros processos externos. "
-            "NÃO use para ler arquivos — prefira read_files. "
-            "Comandos longos são truncados após 8 000 chars de saída."
-        ),
+        "description": "Run terminal commands (git, tests, builds).",
         "input_schema": {
             "type": "object",
-            "properties": {
-                "command": {
-                    "type": "string",
-                    "description": "Comando completo a ser executado no shell.",
-                }
-            },
+            "properties": {"command": {"type": "string"}},
             "required": ["command"],
         },
     },
     {
         "name": "write_file",
-        "description": (
-            "CRIA OU SOBRESCREVE UM ARQUIVO COMPLETAMENTE. "
-            "Use para salvar código ou documentação. "
-            "Cria automaticamente os diretórios intermediários. "
-            "Para alterações pontuais em arquivos já existentes, prefira patch_file. "
-            "ATENÇÃO: arquivos de sprint (.yaml em /sprints/) são protegidos — "
-            "o conteúdo deve ser YAML válido contendo title, name e description. "
-            "Conteúdo vazio ou sem esses campos é bloqueado automaticamente."
-        ),
+        "description": "Create/overwrite file with content.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "path":    {"type": "string", "description": "Caminho do arquivo a ser escrito."},
-                "content": {"type": "string", "description": "Conteúdo completo do arquivo."},
+                "path": {"type": "string"},
+                "content": {"type": "string"},
             },
             "required": ["path", "content"],
         },
     },
     {
         "name": "patch_file",
-        "description": (
-            "EDIÇÃO CIRÚRGICA DE ARQUIVO. Substitui um trecho exato de texto sem reescrever o arquivo inteiro. "
-            "Ideal para correções pontuais: muda apenas o bloco search → replace. "
-            "Falha com erro claro se search_text não for encontrado (exatamente 1 vez). "
-            "PREFERIDO para arquivos de sprint: altera só o campo necessário (status, tasks, updates) "
-            "sem risco de apagar o restante do arquivo."
-        ),
+        "description": "Replace exact text block in a file.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "path":        {"type": "string", "description": "Caminho do arquivo a editar."},
-                "search_text": {"type": "string", "description": "Trecho EXATO a ser localizado."},
-                "replace_text": {"type": "string", "description": "Texto que substituirá o trecho."},
+                "path": {"type": "string"},
+                "search_text": {"type": "string"},
+                "replace_text": {"type": "string"},
             },
             "required": ["path", "search_text", "replace_text"],
         },
     },
     {
         "name": "list_dir",
-        "description": (
-            "LISTAGEM ESTRUTURADA DE DIRETÓRIO. Retorna árvore de arquivos/pastas "
-            "com tamanho e tipo. Mais eficiente que shell ls/find para explorar a estrutura do projeto. "
-            "Use depth para controlar a profundidade (padrão 2)."
-        ),
+        "description": "List directory tree (depth 1-5).",
         "input_schema": {
             "type": "object",
             "properties": {
-                "path":  {"type": "string",  "description": "Diretório raiz a listar."},
-                "depth": {"type": "integer", "description": "Profundidade máxima (1-5, padrão 2)."},
-                "show_hidden": {"type": "boolean", "description": "Incluir arquivos/pastas ocultos (padrão false)."},
+                "path": {"type": "string"},
+                "depth": {"type": "integer"},
+                "show_hidden": {"type": "boolean"},
             },
             "required": ["path"],
         },
     },
     {
         "name": "search_text",
-        "description": (
-            "BUSCA DE PADRÃO EM ARQUIVOS. Grep nativo em Python — sem subprocesso. "
-            "Busca recursivamente por um padrão (regex ou literal) em todos os arquivos "
-            "de um diretório. Retorna arquivo + número de linha + linha correspondente. "
-            "Use para encontrar usos de funções, imports, TODOs, etc."
-        ),
+        "description": "Regex/literal search in directory.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "pattern":   {"type": "string",  "description": "Expressão regex ou texto literal a buscar."},
-                "directory": {"type": "string",  "description": "Diretório raiz para busca recursiva."},
-                "file_glob": {"type": "string",  "description": "Filtro de extensão (ex: '*.py', '*.ts'). Padrão: todos os arquivos de texto."},
-                "literal":   {"type": "boolean", "description": "Se true, trata pattern como texto literal (não regex). Padrão: false."},
-                "max_results": {"type": "integer", "description": "Limite de resultados retornados (padrão 50)."},
+                "pattern": {"type": "string"},
+                "directory": {"type": "string"},
+                "file_glob": {"type": "string"},
+                "literal": {"type": "boolean"},
             },
             "required": ["pattern", "directory"],
         },
     },
 ]
-
 
 class NativeToolsManager:
     """Gerenciador de ferramentas nativas da IA — v2.0."""

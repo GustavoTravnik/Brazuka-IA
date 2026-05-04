@@ -1859,6 +1859,3 @@ document.addEventListener("visibilitychange", () => {
     });
   }
 });
-
-});
-

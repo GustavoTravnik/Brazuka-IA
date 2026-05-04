@@ -170,4 +170,3 @@ async def stream_with_thinking(stream_ctx, label: str = "IA"):
             tool_calls_raw.append(block)
 
     return final_message, collected_text, tool_calls_raw
-ls_raw

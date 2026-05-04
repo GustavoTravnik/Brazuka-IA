@@ -5,7 +5,11 @@
 #   alias coia-web="/caminho/para/coia/src/coia-web.sh"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_PYTHON="$SCRIPT_DIR/../.venv/bin/python3"
+
+# Sobe o proxy do agente em background (ignora se já estiver rodando)
+openco-proxy start &>/dev/null &
+
+VENV_PYTHON="$SCRIPT_DIR/.venv/bin/python3"
 
 if [ ! -f "$VENV_PYTHON" ]; then
     echo "❌ venv não encontrado em $SCRIPT_DIR/.venv"
