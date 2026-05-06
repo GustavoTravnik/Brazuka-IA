@@ -43,6 +43,10 @@ CORS(app)
 os.makedirs(EXECUTIONS_DIR, exist_ok=True)
 os.makedirs(CRONS_DIR, exist_ok=True)
 
+# Definições adicionadas
+VENV_PYTHON = sys.executable
+APP_PY      = os.path.join(BASE_DIR, "app.py")
+
 # Inicia o scheduler de crons em background (thread daemon)
 _cron.start(_daemon)
 

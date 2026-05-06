@@ -8,6 +8,7 @@ import os
 import re
 import sqlite3
 import subprocess
+import sys
 import warnings
 from pathlib import Path
 from typing import Any
@@ -878,59 +879,52 @@ class NativeToolsManager:
             + "\n\n---\n\n".join(results)
         )
 
-    import os
-import subprocess
-import sys
+    def _shell_execute(self, command: str) -> str:
+        if not command or not command.strip():
+            return "❌ shell_execute blocked: 'command' is empty."
 
-def _shell_execute(self, command: str) -> str:
-    if not command or not command.strip():
-        return "❌ shell_execute blocked: 'command' is empty."
-    
-    command = command.strip()
-    
-    # --- LOGICA DE RESOLUÇÃO DE CAMINHO ---
-    # Se o comando for 'coia', nós trocamos pelo caminho real do venv + app.py
-    if command.startswith("coia"):
-        # Detecta o diretório src do projeto (onde este arquivo está em controllers/native_tools.py)
-        # __file__ is .../src/controllers/native_tools.py
-        # os.path.dirname(__file__) is .../src/controllers
-        # os.path.dirname(os.path.dirname(__file__)) is .../src
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        
-        if sys.platform == "win32":
-            venv_python = os.path.join(base_path, ".venv", "Scripts", "python.exe")
-        else:
-            venv_python = os.path.join(base_path, ".venv", "bin", "python3")
-            
-        app_py = os.path.join(base_path, "app.py")
-        
-        # Substitui 'coia' pelo comando completo
-        command = command.replace("coia", f'"{venv_python}" "{app_py}"', 1)
+        command = command.strip()
 
-    try:
-        # Usamos shell=True no Windows para suportar comandos nativos do CMD se necessário
-        result = subprocess.run(
-            command, 
-            shell=True, 
-            capture_output=True, 
-            text=True, 
-            timeout=SHELL_TIMEOUT
-        )
-        
-        output = (result.stdout or "") + (result.stderr or "")
-        
-        if result.returncode != 0 and not output:
-            return f"❌ Command failed with exit code {result.returncode}."
-            
-        if not output:
-            return f"✅ Command executed (exit {result.returncode}, no output)."
-            
-        if len(output) > 8_000:
-            output = output[:8_000] + f"\n… [output truncated — {len(output):,} chars total]"
-            
-        return output
+        # --- LOGICA DE RESOLUÇÃO DE CAMINHO ---
+        # Se o comando for 'coia', nós trocamos pelo caminho real do venv + app.py
+        if command.startswith("coia"):
+            # Detecta o diretório src do projeto
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    except subprocess.TimeoutExpired:
-        return f"❌ Timeout: command exceeded {SHELL_TIMEOUT}s."
-    except OSError as e:
-        return f"❌ Shell error: {e}"
+            if sys.platform == "win32":
+                venv_python = os.path.join(base_path, ".venv", "Scripts", "python.exe")
+            else:
+                venv_python = os.path.join(base_path, ".venv", "bin", "python3")
+
+            app_py = os.path.join(base_path, "app.py")
+
+            # Substitui 'coia' pelo comando completo
+            command = command.replace("coia", f'"{venv_python}" "{app_py}"', 1)
+
+        try:
+            # Usamos shell=True no Windows para suportar comandos nativos do CMD se necessário
+            result = subprocess.run(
+                command, 
+                shell=True, 
+                capture_output=True, 
+                text=True, 
+                timeout=SHELL_TIMEOUT
+            )
+
+            output = (result.stdout or "") + (result.stderr or "")
+
+            if result.returncode != 0 and not output:
+                return f"❌ Command failed with exit code {result.returncode}."
+
+            if not output:
+                return f"✅ Command executed (exit {result.returncode}, no output)."
+
+            if len(output) > 8_000:
+                output = output[:8_000] + f"\n… [output truncated — {len(output):,} chars total]"
+
+            return output
+
+        except subprocess.TimeoutExpired:
+            return f"❌ Timeout: command exceeded {SHELL_TIMEOUT}s."
+        except OSError as e:
+            return f"❌ Shell error: {e}"

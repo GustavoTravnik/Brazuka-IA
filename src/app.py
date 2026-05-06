@@ -1,4 +1,3 @@
-from anthropic import AsyncAnthropic, AsyncAnthropicVertex
 import os
 import re
 import sys
@@ -28,9 +27,13 @@ load_dotenv()
 import subprocess as _subprocess
 import time as _time
 
-MODEL_NAME  = os.getenv("MODEL_GEMINI", "gemini-1.5-pro")
-API_KEY     = os.getenv("GEMINI_API_KEY")
-CONTEXTS_DIR = "contexts"
+# Modelos do Gemini
+MODEL_FREE      = os.getenv("MODEL_GEMINI", "gemini-1.5-flash")
+MODEL_ROBUST    = os.getenv("MODEL_GEMINI_PRO", "gemini-1.5-pro")
+MODEL_INTER     = os.getenv("MODEL_GEMINI_FLASH", "gemini-1.5-flash")
+
+API_KEY         = os.getenv("GEMINI_API_KEY")
+CONTEXTS_DIR    = "contexts"
 
 if not os.path.exists(CONTEXTS_DIR):
     os.makedirs(CONTEXTS_DIR)
@@ -41,55 +44,32 @@ if not API_KEY:
 
 genai.configure(api_key=API_KEY, transport='rest')
 
-_COMPACT_SYSTEM_PROMPT = """\
-Summarize the conversation as structured bullet notes. Max 20% of original size.
-Skip: greetings, repetitions, tool outputs, file contents."""
-
-def _estimate_msg_chars(msg: dict) -> int:
-    content = msg.get("content", "")
-    if isinstance(content, str): return len(content)
-    return len(str(content))
-
-def _extract_text_from_history(history: list[dict]) -> str:
-    lines = []
-    for msg in history:
-        role = msg.get("role", "?")
-        content = msg.get("content", "")
-        lines.append(f"[{role}]: {str(content)[:2000]}")
-    return "\n".join(lines)
-
-def _extract_user_keywords(text: str) -> set[str]:
-    words = re.findall(r'[a-záàâãéèêíïóôõúüçñ]{4,}', text.lower())
-    return {w for w in words if len(w) > 3}
-
-def _detect_topic_change(history: list[dict], new_message: str, threshold: float = 0.15) -> bool:
-    if len(history) < 6: return False
-    new_keywords = _extract_user_keywords(new_message)
-    if not new_keywords: return False
-    return False 
-
-def _save_history_to_contexts(history: list[dict], reason: str = "compact") -> str | None:
-    if not history: return None
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filepath = os.path.join(CONTEXTS_DIR, f"{ts}_{reason}.json")
-    try:
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(history, f, ensure_ascii=False, indent=2, default=str)
-        return filepath
-    except Exception as e:
-        print(f"[⚠️ Erro ao salvar contexto: {e}]")
-        return None
+# Mapeamento de nomes de ferramentas: gemini_safe_name -> original_name
+tool_name_mapping = {}
 
 def convert_tools_to_gemini(tools: list[dict]):
     """Converte definições de ferramentas do padrão Anthropic para o padrão Gemini."""
     if not tools: return []
     
     functions = []
+    tool_name_mapping.clear()
+    
     for t in tools:
+        original_name = t["name"]
+        # Gemini exige nomes que correspondam a [a-zA-Z0-9_-]+ (na verdade algumas versões são mais restritas, apenas underscores)
+        # Vamos ser conservadores e trocar tudo que não for alfanumérico por underscore
+        safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', original_name)
+        tool_name_mapping[safe_name] = original_name
+        
+        # Garante que o schema tenha o formato correto para o Gemini
+        schema = t.get("input_schema", {})
+        if "type" not in schema:
+            schema["type"] = "object"
+            
         functions.append({
-            "name": t["name"],
+            "name": safe_name,
             "description": t["description"],
-            "parameters": t["input_schema"]
+            "parameters": schema
         })
     return [{"function_declarations": functions}]
 
@@ -118,25 +98,25 @@ def convert_history_to_gemini(history: list[dict]):
                 if b_type == "text":
                     parts.append(block.get("text", ""))
                 elif b_type == "tool_use":
+                    # Usa o nome mapeado (seguro para o Gemini)
+                    original_name = block["name"]
+                    safe_name = next((k for k, v in tool_name_mapping.items() if v == original_name), original_name)
                     parts.append({
                         "function_call": {
-                            "name": block["name"],
+                            "name": safe_name,
                             "args": block["input"]
                         }
                     })
                 elif b_type == "tool_result":
                     tool_id = block.get("tool_use_id")
-                    tool_name = tool_id_to_name.get(tool_id, tool_id)
+                    original_tool_name = tool_id_to_name.get(tool_id, tool_id)
+                    # Usa o nome mapeado (seguro para o Gemini)
+                    safe_name = next((k for k, v in tool_name_mapping.items() if v == original_tool_name), original_tool_name)
                     
                     res_val = block.get("content", "")
-                    try:
-                        if isinstance(res_val, str) and (res_val.startswith("{") or res_val.startswith("[")):
-                            res_val = json.loads(res_val)
-                    except: pass
-                    
                     parts.append({
                         "function_response": {
-                            "name": tool_name,
+                            "name": safe_name,
                             "response": {"result": res_val}
                         }
                     })
@@ -163,7 +143,10 @@ async def _api_call_with_retry(model_instance, *, model=None, max_tokens=4096, s
             return model_instance.generate_content(
                 contents=gemini_history,
                 tools=gemini_tools,
-                generation_config=genai.types.GenerationConfig(max_output_tokens=max_tokens)
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=max_tokens,
+                    temperature=0.0
+                )
             )
 
         response = await loop.run_in_executor(None, call_gemini)
@@ -204,6 +187,10 @@ async def _api_call_with_retry(model_instance, *, model=None, max_tokens=4096, s
         
     except Exception as e:
         print(f"❌ Erro na API Gemini: {e}")
+        # Se falhar por causa das ferramentas, tenta sem elas como fallback
+        if tools and "tool" in str(e).lower():
+            print("⚠️ Tentando novamente sem ferramentas...")
+            return await _api_call_with_retry(model_instance, model=model, max_tokens=max_tokens, system=system, messages=messages, tools=None, label=label)
         raise
 
 CYAN, RED, GREEN, BLUE_BOLD, RESET = ("\033[96m", "\033[1;31m", "\033[1;32m", "\033[1;34m", "\033[0m")
@@ -217,17 +204,29 @@ def print_logo(model: str = ""):
 async def chat() -> None:
     session = PromptSession(history=FileHistory('.chat_history'))
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-override", type=str, default=None)
+    parser.add_argument("model_name", type=str, nargs='?', choices=['free', 'robust', 'flash'], help="Modelo a usar (default: free)")
+    parser.add_argument("--model", type=str, choices=['free', 'robust', 'flash'], default='free')
     parser.add_argument("--mcps", type=str, nargs='?', const='all', default=None, 
                         help="Carregar servidores MCP. Use --mcps para todos ou --mcps s1,s2 para específicos.")
     args, _ = parser.parse_known_args()
 
-    effective_model = args.model_override or MODEL_NAME
+    model_map = {
+        'free': MODEL_FREE,
+        'robust': MODEL_ROBUST,
+        'flash': MODEL_INTER
+    }
     
-    client = genai.GenerativeModel(
-        model_name=effective_model,
-        system_instruction="Você é o COIA, um assistente técnico avançado."
-    )
+    # Prioridade para o argumento posicional, se não, usa o flag --model
+    current_model_key = args.model_name if args.model_name else args.model
+    effective_model = model_map[current_model_key]
+    
+    def get_client(m_name):
+        return genai.GenerativeModel(
+            model_name=m_name,
+            system_instruction="Você é o COIA, um assistente técnico avançado. Use as ferramentas sempre que necessário para realizar tarefas no sistema."
+        )
+
+    client = get_client(effective_model)
     
     native = NativeToolsManager()
     mcp = MCPManager()
@@ -251,6 +250,17 @@ async def chat() -> None:
             if not user_input: continue
             if user_input.lower() in {"sair", "exit"}: break
 
+            if user_input.startswith("/model"):
+                parts = user_input.split()
+                if len(parts) > 1 and parts[1] in model_map:
+                    current_model_key = parts[1]
+                    effective_model = model_map[current_model_key]
+                    client = get_client(effective_model)
+                    print(f"{GREEN}🔄 Modelo alterado para: {effective_model} ({current_model_key}){RESET}")
+                else:
+                    print(f"{RED}❌ Uso: /model [free|robust|flash]{RESET}")
+                continue
+
             if user_input == "/clear":
                 _save_history_to_contexts(history, "clear")
                 history.clear()
@@ -258,11 +268,16 @@ async def chat() -> None:
                 continue
 
             history.append({"role": "user", "content": user_input})
+            tool_results = []
 
             while True:
                 print(f"[🔄] Consultando Gemini ({effective_model})...")
                 
-                tools_to_send = active_tools if needs_tools(user_input, history) else []
+                # Loosen tool routing: always send tools if it's not a very short conversation starter
+                # Or just always send them since Gemini Flash is cheap.
+                # Here we use a simpler check: if it's not a command and has more than 3 chars.
+                send_tools = True if len(user_input) > 3 or tool_results else False
+                tools_to_send = active_tools if send_tools else []
                 
                 resp, text, tool_calls = await _api_call_with_retry(
                     client, model=effective_model, max_tokens=4096, 
@@ -279,13 +294,18 @@ async def chat() -> None:
 
                 tool_results = []
                 for tc in tool_calls:
-                    print(f"[🔧] {tc['name']}...")
+                    # Resolve o nome original da ferramenta a partir do nome seguro do Gemini
+                    original_tool_name = tool_name_mapping.get(tc['name'], tc['name'])
+                    print(f"[🔧] {original_tool_name}...")
                     
                     native_names = {t["name"] for t in native.get_tools()}
-                    if tc['name'] in native_names:
-                        res = await native.execute_tool(tc['name'], tc['input'])
-                    else:
-                        res = await mcp.call_tool(tc['name'], tc['input'])
+                    try:
+                        if original_tool_name in native_names:
+                            res = await native.execute_tool(original_tool_name, tc['input'])
+                        else:
+                            res = await mcp.call_tool(original_tool_name, tc['input'])
+                    except Exception as te:
+                        res = f"Error executing tool: {te}"
                         
                     tool_results.append({
                         "type": "tool_result",
@@ -294,7 +314,7 @@ async def chat() -> None:
                     })
                 
                 history.append({"role": "user", "content": tool_results})
-                user_input = "" 
+                user_input = "" # Clear user input for the next iteration of tool calls
 
         except KeyboardInterrupt:
             break
