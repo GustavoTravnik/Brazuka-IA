@@ -1,0 +1,15 @@
+[
+  {
+    "role": "user",
+    "content": "58"
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "Você me forneceu o número **58**.\n\nPara que eu possa te ajudar da melhor forma possível, preciso de um pouco mais de contexto. O que você gostaria de saber ou fazer com o número 58?\n\nEle pode se referir a muitas coisas, como por exemplo:\n\n*   Um **código de erro**?\n*   Um **modelo** ou **número de peça** de algum equipamento?\n*   Uma **medida** (ex: 58mm, 58°C, 58Hz, 58V, 58MB)?\n*   Uma **idade**?\n*   Uma **quantidade**?\n*   Algum outro **dado específico**?\n\nPor favor, forneça mais detalhes para que eu possa te dar a informação correta ou realizar a ação desejada!"
+      }
+    ]
+  }
+]

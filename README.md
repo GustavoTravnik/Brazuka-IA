@@ -184,3 +184,12 @@ source ~/.bashrc
 rraform, 
    - cdk
    - terraform com cdk   
+
+
+
+Essa crew tem o objetivo de receber um link de um chamado do @Jira, fazer uma boa analise do problema encontrado, em seguida enviando esses dados para um arquiteto para interpretar toda a logica e criar as tarefas para que os devs as pegue depois.
+Teremos entao um agente PO que vai ser o router das tarefas da sprint
+O Dev de backend pra pegar as tarefas marcadas como DEV-BACKEND
+O Dev de frontend pra pegar as tarefas marcadas como DEV-FRONTEND
+O QA, que ao final do Dev vai pegar o projeto, buildar, criar testes
+O agente Janitor para limpar qualquer lixo que ficou para trás etc.

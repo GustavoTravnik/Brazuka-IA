@@ -24,13 +24,8 @@ if (!(Test-Path $pipPath)) {
 Write-Host "Instalando dependencias..." -ForegroundColor Cyan
 # Usando o caminho absoluto para evitar erro de reconhecimento
 $absPipPath = (Resolve-Path $pipPath).Path
-& $absPipPath install --upgrade pip3 -q
+& $absPipPath install --upgrade pip -q
 & $absPipPath install -r src\requirements.txt
-
-# --- Instalando dependencias ---
-Write-Host "Instalando dependencias..." -ForegroundColor Cyan
-& .\.venv\Scripts\pip3 install --upgrade pip3 -q
-& .\.venv\Scripts\pip3 install -r src\requirements.txt
 
 # --- Configuracao do .env ---
 if (!(Test-Path "src\.env")) {

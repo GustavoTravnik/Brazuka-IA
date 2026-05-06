@@ -8,6 +8,7 @@ import glob
 import json
 import uuid
 import yaml
+import platform
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -882,111 +883,63 @@ def cron_preview():
     return jsonify({"next_runs": runs})
 
 # ─────────────────────────────────────────────
+# HELPERS DE TERMINAL
+# ─────────────────────────────────────────────
+def _launch_terminal(cmd: str, cwd: str = BASE_DIR):
+    """
+    Abre uma nova janela de terminal para executar o comando COIA.
+    Suporta Windows (cmd /k) e Linux (gnome-terminal).
+    """
+    if sys.platform == "win32":
+        # No Windows, usamos o coia.bat que criamos em BASE_DIR (src/)
+        coia_bat = os.path.join(BASE_DIR, "coia.bat")
+        
+        # Se o comando começar com 'coia', trocamos pelo path do .bat
+        if cmd.startswith("coia"):
+            full_cmd = cmd.replace("coia", f'"{coia_bat}"', 1)
+        else:
+            full_cmd = cmd
+
+        # start "" cmd /k: abre nova janela, mantém aberta
+        # Usamos pause ao final para garantir que o usuário veja o resultado se o cmd falhar
+        subprocess.Popen(
+            f'start "" cmd /k "{full_cmd} & pause"',
+            shell=True,
+            cwd=cwd
+        )
+    else:
+        # Linux (Gnome Terminal + Bash)
+        # Tenta usar o coia.sh se disponível
+        coia_sh = os.path.join(BASE_DIR, "coia.sh")
+        if cmd.startswith("coia"):
+            full_cmd = cmd.replace("coia", f'"{coia_sh}"', 1)
+        else:
+            full_cmd = cmd
+
+        subprocess.Popen(
+            [
+                "gnome-terminal", "--",
+                "bash", "-i", "-c",
+                f'{full_cmd}; _rc=$?; echo ""; if [ $_rc -ne 0 ]; then echo "── erro (exit $_rc) — pressione qualquer tecla para fechar ──"; else echo "── sessão encerrada ──"; fi; read -n1',
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+# ─────────────────────────────────────────────
 # SESSÃO INTERATIVA
 # ─────────────────────────────────────────────
 @app.route("/api/session/start", methods=["POST"])
 def start_session():
-    """
-    Abre um terminal do sistema executando exatamente o comando recebido.
-    O comando vem do textbox #cmdline do painel (ex: coia --skills "[rtk-gain]").
-    Usa bash -i para carregar o .bashrc e resolver o alias 'coia'.
-    """
     body = request.get_json(silent=True) or {}
-    cmd  = body.get("cmd", "").strip()
-    if not cmd:
-        return jsonify({"error": "Comando vazio"}), 400
+    cmd = body.get("cmd", "").strip() or "coia"
 
     try:
-        subprocess.Popen(
-            [
-                "gnome-terminal", "--",
-                "bash", "-i", "-c",
-                f'{cmd}; _rc=$?; echo ""; if [ $_rc -ne 0 ]; then echo "── erro (exit $_rc) — pressione qualquer tecla para fechar ──"; else echo "── sessão encerrada ──"; fi; read -n1',
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
+        _launch_terminal(cmd)
         return jsonify({"ok": True, "cmd": cmd})
-    except FileNotFoundError:
-        return jsonify({"error": "gnome-terminal não encontrado no sistema"}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# ─────────────────────────────────────────────
-# SESSÃO SKILL BUILDER
-# ─────────────────────────────────────────────
-@app.route("/api/session/start-skill-builder", methods=["POST"])
-def start_skill_builder_session():
-    """
-    Abre um terminal focado em criar skills para o COIA.
-    Carrega apenas a skill skill-builder + clean-code + zero-filler.
-    Usa --no-mcp para não carregar ferramentas desnecessárias.
-    Exibe dicas no console antes de iniciar o agente.
-    """
-    skills = ["skill-builder", "agent-performance", "clean-code", "zero-filler", "install-on-demand"]
-    skills_arg = f'--skills "[{",".join(skills)}]"'
-
-    skills_dir = SKILLS_DIR
-    existing_skills = sorted([
-        os.path.splitext(os.path.basename(f))[0]
-        for f in glob.glob(os.path.join(skills_dir, "*.md"))
-    ])
-    skills_list_str = "\\n".join(f"  • {s}" for s in existing_skills)
-
-    dicas = (
-        "╔══════════════════════════════════════════════════════════╗\\n"
-        "║           🧠  COIA — CRIADOR DE SKILLS                  ║\\n"
-        "╚══════════════════════════════════════════════════════════╝\\n"
-        "\\n"
-        "  Este terminal foi aberto para criar uma nova skill.\\n"
-        "  O agente já carregou as instruções de como criar skills\\n"
-        "  de qualidade e vai te guiar pelo processo.\\n"
-        "\\n"
-        "  💡 DICAS PARA UM BOM RESULTADO:\\n"
-        "\\n"
-        "  1. Seja ESPECÍFICO sobre o que a skill deve fazer\\n"
-        "     Ex: 'skill para gerar Dockerfiles de produção para Node.js'\\n"
-        "     Não: 'skill de Docker'\\n"
-        "\\n"
-        "  2. Diga QUANDO o agente deve usar o conhecimento\\n"
-        "     Ex: 'sempre que criar ou revisar um Dockerfile'\\n"
-        "\\n"
-        "  3. Mencione ANTIPADRÕES que o agente deve evitar\\n"
-        "     Ex: 'nunca usar a tag latest, sempre definir HEALTHCHECK'\\n"
-        "\\n"
-        "  4. Se tiver exemplos reais de código, compartilhe\\n"
-        "     O agente vai extrair os padrões automaticamente\\n"
-        "\\n"
-        f"  📋 SKILLS JÁ EXISTENTES ({len(existing_skills)} skills):\\n"
-        f"{skills_list_str}\\n"
-        "\\n"
-        "  ─────────────────────────────────────────────────────────\\n"
-        "  Descreva a skill que você quer criar para o COIA:↓\\n"
-        "  ─────────────────────────────────────────────────────────\\n"
-        "\\n"
-    )
-
-    cmd = f'echo -e "{dicas}" && coia {skills_arg} --no-mcp --no-clear'
-
-    try:
-        subprocess.Popen(
-            [
-                "gnome-terminal", "--",
-                "bash", "-i", "-c",
-                f'{cmd}; _rc=$?; echo ""; if [ $_rc -ne 0 ]; then echo "── erro (exit $_rc) — pressione qualquer tecla para fechar ──"; else echo "── sessão encerrada ──"; fi; read -n1',
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-        return jsonify({"ok": True, "skills": skills})
-    except FileNotFoundError:
-        return jsonify({"error": "gnome-terminal não encontrado no sistema"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+        return jsonify({"error": f"Erro ao abrir terminal: {str(e)}"}), 500
 
 # ─────────────────────────────────────────────
 # SESSÃO CREW BUILDER
@@ -994,9 +947,7 @@ def start_skill_builder_session():
 @app.route("/api/session/start-crew-builder", methods=["POST"])
 def start_crew_builder_session():
     """
-    Abre um terminal focado em criar uma crew YAML completa para o COIA.
-    Recebe tipo, nome, objetivo e stack do usuário e monta um prompt rico
-    com contexto das crews existentes para que o agente gere a crew ideal.
+    Abre um terminal focado em criar uma crew YAML completa para o COIA no Windows.
     """
     body = request.get_json(silent=True) or {}
     crew_name  = body.get("name", "").strip().replace(" ", "-")
@@ -1014,34 +965,56 @@ def start_crew_builder_session():
     if os.path.exists(crew_path):
         return jsonify({"error": f"Crew '{crew_name}' já existe. Escolha outro nome."}), 409
 
-    # Coleta nomes das crews existentes e resumos para contexto
+    # 2. Coleta de Contexto (Crews e Skills)
     crew_files = glob.glob(os.path.join(CREWS_DIR, "*.yaml"))
     crew_summaries = []
     for f in sorted(crew_files):
         fname = os.path.splitext(os.path.basename(f))[0]
-        with open(f, "r", encoding="utf-8") as fp:
-            data = yaml.safe_load(fp) or {}
-        desc = (data.get("description") or "")[:200]
-        agents = data.get("crew", [])
-        agent_names = [a.get("name", "?") for a in agents if isinstance(a, dict)]
-        crew_summaries.append(
-            f"- **{fname}**: {desc.strip()}\n"
-            f"  Agentes: {', '.join(agent_names)}"
-        )
+        try:
+            with open(f, "r", encoding="utf-8") as fp:
+                data = yaml.safe_load(fp) or {}
+            desc = (data.get("description") or "")[:200]
+            agents = data.get("crew", [])
+            agent_names = [a.get("name", "?") for a in agents if isinstance(a, dict)]
+            crew_summaries.append(f"- {fname}: {desc.strip()} (Agentes: {', '.join(agent_names)})")
+        except: continue
+    
     crew_context = "\n".join(crew_summaries) if crew_summaries else "(nenhuma crew existente)"
 
-    # Coleta skills disponíveis
-    skill_files = glob.glob(os.path.join(SKILLS_DIR, "*.md"))
-    available_skills = sorted([
-        os.path.splitext(os.path.basename(f))[0] for f in skill_files
-    ])
+    # 3. Montagem do Prompt de Inicialização
+    header = "=========================================================="
+    prompt_pessoal = (
+        f"{header}\n"
+        f"        COIA - CONSTRUTOR DE CREWS (MODO YAML)\n"
+        f"{header}\n\n"
+        f"  ESTAMOS CRIANDO A CREW: {crew_name}\n"
+        f"  TIPO: {crew_type}\n"
+        f"  OBJETIVO: {objective}\n"
+        f"  STACK: {stack}\n\n"
+        f"  CONTEXTO ATUAL:\n{crew_context}\n\n"
+        "  Diga ao agente: 'Gere o arquivo YAML para esta crew'.\n"
+        f"{header}\n"
+    )
 
-    # Coleta MCPs disponíveis
-    mcp_files = glob.glob(os.path.join(MCP_SERVERS_DIR, "*.py"))
-    available_mcps = sorted([
-        os.path.splitext(os.path.basename(f))[0]
-        for f in mcp_files if not os.path.basename(f).startswith("_")
-    ])
+    # 4. Execução no Windows
+    # Usamos o Python do VENV diretamente para rodar o app.py
+    # Passamos as skills necessárias para o builder trabalhar bem
+    skills_arg = '--skills "[crew-builder, clean-code, zero-filler]"'
+    
+    # Comando para o CMD: limpa tela -> mostra info -> roda COIA
+    run_cmd = f'cls && echo {prompt_pessoal} && "{VENV_PYTHON}" "{APP_PY}" {skills_arg} --no-mcp'
+
+    try:
+        # Abre nova janela do terminal Windows
+        subprocess.Popen(
+            f'start cmd /k "{run_cmd}"',
+            shell=True,
+            cwd=BASE_DIR
+        )
+        return jsonify({"ok": True, "crew": crew_name})
+
+    except Exception as e:
+        return jsonify({"error": f"Falha ao abrir terminal no Windows: {str(e)}"}), 500
 
     # Mapeamento de tipo para descrição detalhada
     type_descriptions = {
@@ -1235,21 +1208,8 @@ Diretrizes:
     cmd = f'coia {skills_arg} --context-file {tmp_path} --no-clear'
 
     try:
-        subprocess.Popen(
-            [
-                "gnome-terminal", "--",
-                "bash", "-i", "-c",
-                f'{cmd}; _rc=$?; echo ""; if [ $_rc -ne 0 ]; then echo "── erro (exit $_rc) — pressione qualquer tecla para fechar ──"; else echo "── sessão encerrada ──"; fi; read -n1',
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
+        _launch_terminal(cmd)
         return jsonify({"ok": True, "crew_name": crew_name, "skills": skills})
-    except FileNotFoundError:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-        return jsonify({"error": "gnome-terminal não encontrado no sistema"}), 500
     except Exception as e:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
@@ -1321,21 +1281,8 @@ def start_sprint_session():
     cmd = f'coia {skills_arg} --context-file {tmp_path} --no-clear'
 
     try:
-        subprocess.Popen(
-            [
-                "gnome-terminal", "--",
-                "bash", "-i", "-c",
-                f'{cmd}; _rc=$?; echo ""; if [ $_rc -ne 0 ]; then echo "── erro (exit $_rc) — pressione qualquer tecla para fechar ──"; else echo "── sessão encerrada ──"; fi; read -n1',
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
+        _launch_terminal(cmd)
         return jsonify({"ok": True, "sprint": sprint_name, "skills": all_skills})
-    except FileNotFoundError:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-        return jsonify({"error": "gnome-terminal não encontrado no sistema"}), 500
     except Exception as e:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)

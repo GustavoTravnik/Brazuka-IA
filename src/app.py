@@ -28,7 +28,6 @@ load_dotenv()
 import subprocess as _subprocess
 import time as _time
 
-# Correção do nome do modelo (gemini-1.5-pro é o atual estável)
 MODEL_NAME  = os.getenv("MODEL_GEMINI", "gemini-1.5-pro")
 API_KEY     = os.getenv("GEMINI_API_KEY")
 CONTEXTS_DIR = "contexts"
@@ -45,8 +44,6 @@ genai.configure(api_key=API_KEY, transport='rest')
 _COMPACT_SYSTEM_PROMPT = """\
 Summarize the conversation as structured bullet notes. Max 20% of original size.
 Skip: greetings, repetitions, tool outputs, file contents."""
-
-# --- FUNÇÕES DE UTILIDADE ---
 
 def _estimate_msg_chars(msg: dict) -> int:
     content = msg.get("content", "")
@@ -69,7 +66,6 @@ def _detect_topic_change(history: list[dict], new_message: str, threshold: float
     if len(history) < 6: return False
     new_keywords = _extract_user_keywords(new_message)
     if not new_keywords: return False
-    # Heurística simplificada para o exemplo
     return False 
 
 def _save_history_to_contexts(history: list[dict], reason: str = "compact") -> str | None:
@@ -84,69 +80,131 @@ def _save_history_to_contexts(history: list[dict], reason: str = "compact") -> s
         print(f"[⚠️ Erro ao salvar contexto: {e}]")
         return None
 
-# --- NÚCLEO DE COMUNICAÇÃO GEMINI ---
+def convert_tools_to_gemini(tools: list[dict]):
+    """Converte definições de ferramentas do padrão Anthropic para o padrão Gemini."""
+    if not tools: return []
+    
+    functions = []
+    for t in tools:
+        functions.append({
+            "name": t["name"],
+            "description": t["description"],
+            "parameters": t["input_schema"]
+        })
+    return [{"function_declarations": functions}]
 
 def convert_history_to_gemini(history: list[dict]):
     """Converte histórico do padrão Anthropic/COIA para o padrão Gemini."""
     gemini_history = []
+    
+    tool_id_to_name = {}
+    for msg in history:
+        content = msg.get("content", [])
+        if isinstance(content, list):
+            for block in content:
+                if block.get("type") == "tool_use":
+                    tool_id_to_name[block["id"]] = block["name"]
+
     for msg in history:
         role = "user" if msg["role"] == "user" else "model"
         content = msg["content"]
-        # Simplifica conteúdos complexos para string para evitar erros de tipo no SDK
-        if isinstance(content, list):
-            text_parts = [block.get("text", "") for block in content if block.get("type") == "text"]
-            content = " ".join(text_parts)
-        gemini_history.append({"role": role, "parts": [content]})
+        parts = []
+
+        if isinstance(content, str):
+            parts.append(content)
+        elif isinstance(content, list):
+            for block in content:
+                b_type = block.get("type")
+                if b_type == "text":
+                    parts.append(block.get("text", ""))
+                elif b_type == "tool_use":
+                    parts.append({
+                        "function_call": {
+                            "name": block["name"],
+                            "args": block["input"]
+                        }
+                    })
+                elif b_type == "tool_result":
+                    tool_id = block.get("tool_use_id")
+                    tool_name = tool_id_to_name.get(tool_id, tool_id)
+                    
+                    res_val = block.get("content", "")
+                    try:
+                        if isinstance(res_val, str) and (res_val.startswith("{") or res_val.startswith("[")):
+                            res_val = json.loads(res_val)
+                    except: pass
+                    
+                    parts.append({
+                        "function_response": {
+                            "name": tool_name,
+                            "response": {"result": res_val}
+                        }
+                    })
+        
+        if parts:
+            gemini_history.append({"role": role, "parts": parts})
+            
     return gemini_history
 
 async def _api_call_with_retry(model_instance, *, model=None, max_tokens=4096, system=None, messages=None, tools=None, label="AI"):
     """
-    Assinatura corrigida para aceitar os argumentos nomeados (model, system, tools, etc)
-    que o loop principal está enviando.
+    Executa a chamada ao Gemini com suporte a histórico completo e ferramentas.
     """
     try:
-        # Pega a última mensagem do histórico
         if not messages:
             return None, "Histórico vazio", []
-            
-        last_msg = messages[-1]["content"]
-        
-        # Se for lista (padrão Anthropic), extrai o texto
-        if isinstance(last_msg, list):
-            text_content = ""
-            for block in last_msg:
-                if isinstance(block, dict) and block.get("type") == "text":
-                    text_content += block.get("text", "")
-            last_msg = text_content
+
+        gemini_history = convert_history_to_gemini(messages)
+        gemini_tools = convert_tools_to_gemini(tools) if tools else None
 
         loop = asyncio.get_event_loop()
         
-        # Executa a chamada síncrona em thread para evitar conflitos de gRPC no WSL
         def call_gemini():
             return model_instance.generate_content(
-                last_msg,
+                contents=gemini_history,
+                tools=gemini_tools,
                 generation_config=genai.types.GenerationConfig(max_output_tokens=max_tokens)
             )
 
         response = await loop.run_in_executor(None, call_gemini)
         
-        # Mock do objeto de resposta para manter compatibilidade com seu loop
+        text_parts = []
+        tool_calls = []
+        
+        if response.candidates:
+            part_list = response.candidates[0].content.parts
+            for p in part_list:
+                if p.text:
+                    text_parts.append(p.text)
+                if p.function_call:
+                    tool_calls.append({
+                        'id': f"call_{uuid.uuid4().hex[:8]}",
+                        'name': p.function_call.name,
+                        'input': dict(p.function_call.args)
+                    })
+        
+        full_text = "".join(text_parts)
+        
         class MockResponse:
-            def __init__(self, res):
-                self.text = res.text
+            def __init__(self, res, txt, tcs):
+                self.text = txt
+                self.content = []
+                if txt: self.content.append({'type': 'text', 'text': txt})
+                for tc in tcs:
+                    self.content.append({
+                        'type': 'tool_use', 'id': tc['id'], 'name': tc['name'], 'input': tc['input']
+                    })
                 self.usage = type('obj', (object,), {
                     'input_tokens': 0, 
                     'output_tokens': 0, 
                     'cache_read_input_tokens': 0
                 })
         
-        return MockResponse(response), response.text, []
+        return MockResponse(response, full_text, tool_calls), full_text, tool_calls
         
     except Exception as e:
         print(f"❌ Erro na API Gemini: {e}")
         raise
-
-# --- UI E CORES ---
 
 CYAN, RED, GREEN, BLUE_BOLD, RESET = ("\033[96m", "\033[1;31m", "\033[1;32m", "\033[1;34m", "\033[0m")
 
@@ -156,23 +214,28 @@ def print_logo(model: str = ""):
     print(f"       MODELO: {model}")
     print(f"=========================================={RESET}\n")
 
-# --- LOOP PRINCIPAL ---
-
 async def chat() -> None:
     session = PromptSession(history=FileHistory('.chat_history'))
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-override", type=str, default=None)
+    parser.add_argument("--mcps", type=str, nargs='?', const='all', default=None, 
+                        help="Carregar servidores MCP. Use --mcps para todos ou --mcps s1,s2 para específicos.")
     args, _ = parser.parse_known_args()
 
     effective_model = args.model_override or MODEL_NAME
     
-    # Inicialização correta do Gemini
     client = genai.GenerativeModel(
         model_name=effective_model,
         system_instruction="Você é o COIA, um assistente técnico avançado."
     )
     
     native = NativeToolsManager()
+    mcp = MCPManager()
+    
+    if args.mcps:
+        allowed = None if args.mcps == 'all' else args.mcps.split(',')
+        await mcp.initialize_standard_servers(allowed=allowed)
+    
     command = CommandManager()
     history: list[dict] = []
 
@@ -180,6 +243,9 @@ async def chat() -> None:
 
     while True:
         try:
+            mcp_tools = await mcp.get_all_tools()
+            active_tools = native.get_tools() + mcp_tools
+            
             user_input = await session.prompt_async("\nVocê ➔ ", style=Style.from_dict({'prompt': 'ansicyan bold'}))
             
             if not user_input: continue
@@ -191,21 +257,44 @@ async def chat() -> None:
                 print(f"{GREEN}🧹 Histórico limpo.{RESET}")
                 continue
 
-            # Adiciona ao histórico (formato Anthropic interno)
             history.append({"role": "user", "content": user_input})
 
-            print(f"[🔄] Consultando Gemini ({effective_model})...")
-            
-            # Chamada adaptada
-            resp, text, tools = await _api_call_with_retry(
-                client, model=effective_model, max_tokens=4096, 
-                system="", messages=history, tools=[]
-            )
+            while True:
+                print(f"[🔄] Consultando Gemini ({effective_model})...")
+                
+                tools_to_send = active_tools if needs_tools(user_input, history) else []
+                
+                resp, text, tool_calls = await _api_call_with_retry(
+                    client, model=effective_model, max_tokens=4096, 
+                    system="", messages=history, tools=tools_to_send
+                )
 
-            print(f"\n{GREEN}COIA ➔{RESET} {text}")
-            
-            # Salva resposta no histórico
-            history.append({"role": "assistant", "content": text})
+                history.append({"role": "assistant", "content": resp.content})
+
+                if text:
+                    print(f"\n{GREEN}COIA ➔{RESET} {text}")
+                
+                if not tool_calls:
+                    break
+
+                tool_results = []
+                for tc in tool_calls:
+                    print(f"[🔧] {tc['name']}...")
+                    
+                    native_names = {t["name"] for t in native.get_tools()}
+                    if tc['name'] in native_names:
+                        res = await native.execute_tool(tc['name'], tc['input'])
+                    else:
+                        res = await mcp.call_tool(tc['name'], tc['input'])
+                        
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tc['id'],
+                        "content": str(res)
+                    })
+                
+                history.append({"role": "user", "content": tool_results})
+                user_input = "" 
 
         except KeyboardInterrupt:
             break
