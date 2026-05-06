@@ -22,7 +22,6 @@ if _BASE not in sys.path:
 
 from services.daemon_client import daemon as _daemon
 from services import cron_scheduler as _cron
-from controllers.skill_manager import DEFAULT_SKILLS as _DEFAULT_SKILLS
 
 PANEL_DIR       = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR        = os.path.dirname(PANEL_DIR)
@@ -95,10 +94,6 @@ def list_skills():
         name = os.path.splitext(os.path.basename(f))[0]
         skills.append({"name": name, "description": _extract_skill_description(f)})
     return jsonify(skills)
-
-@app.route("/api/skills/defaults", methods=["GET"])
-def get_default_skills():
-    return jsonify(_DEFAULT_SKILLS)
 
 @app.route("/api/skills/<name>", methods=["GET"])
 def get_skill(name):
@@ -1289,8 +1284,7 @@ def start_sprint_session():
         return jsonify({"error": f"Erro ao ler sprint: {e}"}), 500
 
     # Skills padrão + adicionais sem duplicatas
-    default_skills = []
-    all_skills = default_skills + [s for s in extra_skills if s not in default_skills]
+    all_skills = [s for s in extra_skills]
     skills_arg = f'--skills "[{",".join(all_skills)}]"'
 
     # Monta resumo estruturado da sprint — apenas dados objetivos, sem instruções de ação

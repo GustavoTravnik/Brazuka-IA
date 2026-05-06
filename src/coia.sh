@@ -6,9 +6,6 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Sobe o proxy do agente em background (ignora se já estiver rodando)
-openco-proxy start &>/dev/null &
-
 VENV_PYTHON="$SCRIPT_DIR/.venv/bin/python3"
 
 if [ ! -f "$VENV_PYTHON" ]; then

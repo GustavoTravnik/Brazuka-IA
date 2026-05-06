@@ -2,9 +2,6 @@ import os
 
 BLUE_BOLD, RESET = "\033[1;34m", "\033[0m"
 
-DEFAULT_SKILLS = []
-
-
 class SkillManager:
     def __init__(self, skills_path: str | None = None) -> None:
         if skills_path is None:
@@ -14,18 +11,15 @@ class SkillManager:
 
     def get_all_skills(self, selected_names: list[str] | None = None) -> str:
         effective = list(selected_names) if selected_names else []
-        for s in DEFAULT_SKILLS:
-            if s not in effective:
-                effective.append(s)
 
         if not os.path.exists(self.skills_path):
-            return "[AVISO] Diretório de skills não encontrado."
+            return "[WARNING] Skills directory not found."
 
         files = [f for f in os.listdir(self.skills_path) if f.endswith(".md")]
         if not files:
-            return "[AVISO] Nenhum arquivo .md encontrado em skills/."
+            return "[WARNING] No .md files found in skills/."
 
-        parts: list[str] = ["\n\n=== EXPERT SKILLS LOADED ===\n"]
+        parts: list[str] = []
         loaded: list[str] = []
 
         for filename in sorted(files):
@@ -35,15 +29,15 @@ class SkillManager:
             try:
                 file_path = os.path.join(self.skills_path, filename)
                 with open(file_path, "r", encoding="utf-8") as f:
-                    parts.append(f"\n----- \nSKILL [{filename}]:\n{f.read()}\n")
+                    parts.append(f"\n---\nSKILL [{filename}]:\n{f.read()}\n")
                 loaded.append(f"    > {skill_name}")
             except OSError as e:
-                parts.append(f"\n[ERRO ao carregar '{filename}']: {e}\n")
+                parts.append(f"\n[ERROR loading '{filename}']: {e}\n")
 
         if not loaded:
-            return "\n[AVISO] Nenhuma das skills especificadas foi encontrada."
+            return "\n[WARNING] None of the specified skills were found."
 
         loaded_list = "\n".join(loaded)
-        print(f"{BLUE_BOLD}========= {len(loaded)} Skill(s) Carregada(s) =========\n{loaded_list}\n=====================================\n{RESET}")
+        print(f"{BLUE_BOLD}========= {len(loaded)} Skill(s) Loaded =========\n{loaded_list}\n====================================={RESET}\n")
 
         return "".join(parts)

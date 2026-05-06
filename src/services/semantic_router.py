@@ -1,29 +1,27 @@
 import os
-
+from anthropic import AuthenticationError, PermissionDeniedError, APIStatusError
 
 class SemanticRouter:
     def __init__(self, client, model_id: str | None = None):
         self.client = client
-        self.model_id = model_id or os.getenv("MODEL_GEMINI_FLASH", "gemini-1.5-flash")
+        self.model_id = model_id or os.getenv("MODEL_HAIKU", "claude-haiku-4-5")
 
     async def evaluate(self, agent_name: str, output: str, transitions: list[dict]) -> str | None:
         if not transitions:
             return None
 
         options = "\n".join(
-            f'{i}. Condição: "{t["condition"]}" -> Destino: {t["target"]}'
+            f'{i}. Condition: "{t["condition"]}" -> Target: {t["target"]}'
             for i, t in enumerate(transitions)
         )
 
         router_prompt = (
-            f"Você é um roteador de fluxo de trabalho especializado. "
-            f"Analise o que o agente '{agent_name}' produziu e decida quem deve continuar.\n\n"
-            f"SAÍDA DO AGENTE:\n\"\"\"\n{output}\n\"\"\"\n\n"
-            f"OPÇÕES DE TRANSIÇÃO:\n{options}\n"
-            f"{len(transitions)}. Nenhuma das anteriores -> Destino: null\n\n"
-            f"REGRAS:\n"
-            f"1. Responda APENAS com o nome exato do Destino ou a palavra 'null'.\n"
-            f"2. Nenhum texto adicional além do nome.\n"
+            f"Workflow router. Agent '{agent_name}' produced the output below.\n"
+            f"Choose the next target based on the transition conditions.\n\n"
+            f"OUTPUT:\n\"\"\"\n{output}\n\"\"\"\n\n"
+            f"TRANSITIONS:\n{options}\n"
+            f"{len(transitions)}. None of the above -> Target: null\n\n"
+            f"Reply with ONLY the exact Target name or 'null'. No extra text.\n"
         )
 
         try:
@@ -37,10 +35,17 @@ class SemanticRouter:
             raw_decision = resp.content[0].text.strip() if resp.content else ""
             decision = raw_decision.strip("'\"").strip()
 
-            print(f"[*] Roteador ({self.model_id}): '{agent_name}' → '{decision}'")
+            print(f"[*] Router ({self.model_id}): '{agent_name}' → '{decision}'")
 
             return None if not decision or decision.lower() == "null" else decision
 
+        except (AuthenticationError, PermissionDeniedError) as e:
+            raise
+        except APIStatusError as e:
+            if e.status_code in (401, 403):
+                raise
+            print(f"[!] Semantic router error: {e}")
+            return None
         except Exception as e:
-            print(f"[!] Erro no roteamento semântico: {e}")
+            print(f"[!] Semantic router error: {e}")
             return None

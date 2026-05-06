@@ -2,8 +2,6 @@
 // COIA PANEL — app.js  (skills, crews, commands, prompts, sprints, execuções)
 // ═══════════════════════════════════════════════════════════════════
 
-let DEFAULT_SKILLS = []; // populado em init() via /api/skills/defaults
-
 const CRON_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro"];
 
 // ─── Estado global ───────────────────────────────────────────────
@@ -1824,7 +1822,6 @@ async function init() {
         api("GET", "/api/sprints"),
         api("GET", "/api/executions"),
         api("GET", "/api/tools"),
-        api("GET", "/api/skills/defaults"),
       ]);
     State.skills         = skills;
     State.mcps           = mcps;
@@ -1834,8 +1831,6 @@ async function init() {
     State.prompts        = prompts;
     State.sprints        = sprints;
     State.executions     = executions;
-    DEFAULT_SKILLS       = defaultSkills || [];
-    State.selectedSkills = new Set(DEFAULT_SKILLS);
     // /api/tools retorna { native: [...], mcp: [...] }
     State.tools = (tools && tools.native) ? tools : { native: tools || [], mcp: [] };
     renderHome();

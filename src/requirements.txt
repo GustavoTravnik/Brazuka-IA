@@ -10,3 +10,4 @@ flask-cors
 croniter
 google-genai
 google-generativeai
+anthropic
