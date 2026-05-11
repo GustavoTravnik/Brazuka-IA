@@ -878,4 +878,14 @@ class Crew:
         native_tools = [t for t in self.native.get_tools() if t["name"] in agent.tools]
         mcp_all = await self.mcp.get_all_tools()
         mcp_filtered = [t for t in mcp_all if any(p in t["name"] for p in agent.tools)]
-        return native_tools + mcp_filtered
+        
+        all_tools = native_tools + mcp_filtered
+        
+        # Remove 'default' field from all properties in the schema for Gemini compatibility
+        for tool in all_tools:
+            if "input_schema" in tool and "properties" in tool["input_schema"]:
+                for prop_name, prop_details in tool["input_schema"]["properties"].items():
+                    if "default" in prop_details:
+                        del prop_details["default"]
+                        
+        return all_tools

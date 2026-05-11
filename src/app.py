@@ -14,7 +14,12 @@ from controllers.agent_orchestrator import Orquestrador
 from controllers.command_manager import CommandManager
 from controllers.skill_manager import SkillManager
 from controllers.mcp_manager import MCPManager
-from controllers.native_tools import NativeToolsManager
+import platform
+
+if platform.system() == "Windows":
+    from controllers.native_tools_windows import NativeToolsManager
+else:
+    from controllers.native_tools import NativeToolsManager
 from controllers.tool_router import needs_tools
 from controllers.thinking_stream import stream_with_thinking
 from prompt_toolkit import PromptSession
@@ -65,6 +70,12 @@ def convert_tools_to_gemini(tools: list[dict]):
         schema = t.get("input_schema", {})
         if "type" not in schema:
             schema["type"] = "object"
+            
+        # Remove 'default' field from all properties in the schema
+        if "properties" in schema:
+            for prop_name, prop_details in schema["properties"].items():
+                if "default" in prop_details:
+                    del prop_details["default"]
             
         functions.append({
             "name": safe_name,
@@ -223,7 +234,7 @@ async def chat() -> None:
     def get_client(m_name):
         return genai.GenerativeModel(
             model_name=m_name,
-            system_instruction="Você é o COIA, um assistente técnico avançado. Use as ferramentas sempre que necessário para realizar tarefas no sistema."
+            system_instruction="Você é o COIA, um assistente técnico avançado. Seu diretório de trabalho é onde o arquivo `app.py` está localizado. A pasta `skills` também está neste diretório. Use as ferramentas sempre que necessário para realizar tarefas no sistema."
         )
 
     client = get_client(effective_model)

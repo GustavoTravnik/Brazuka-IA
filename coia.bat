@@ -1,2 +1,2 @@
 @echo off
-call "%~dp0src\coia.bat" %*
+python src/app.py %*
